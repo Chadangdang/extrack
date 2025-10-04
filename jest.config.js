@@ -1,4 +1,6 @@
 module.exports = {
-  testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/tests/setupTests.ts'],
+  preset: "ts-jest",
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/tests/setupTests.ts"],
+  transformIgnorePatterns: ["node_modules/(?!@testing-library)"],
 };
