@@ -3,12 +3,81 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ChevronLeft, Menu, Camera } from "lucide-react";
 
-export default function AddTransactionPage() {
+export default function EditTransactionPage() {
   const router = useRouter();
 
+  // hamburger
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // form state
   const [type, setType] = useState("Income");
   const [category, setCategory] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    amount: "",
+    date: "",
+    method: "",
+    note: "",
+  });
+
+  // Date helper: ensure YYYY-MM-DD for <input type="date">
+  function toDateInput(value) {
+    if (!value) return "";
+    if (value instanceof Date) {
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, "0");
+      const d = String(value.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    const mdy = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (mdy) {
+      let [_, m, d, y] = mdy;
+      if (y.length === 2) y = `20${y}`;
+      return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    }
+    const dt = new Date(value);
+    if (!isNaN(dt)) return toDateInput(dt);
+    return "";
+  }
+
+  // mock prefill (replace with your backend fetch)
+  useEffect(() => {
+    const existing = {
+      name: "Water Bill",
+      amount: 120,
+      type: "Expense",
+      category: "Bill",
+      date: "1/1/25",
+      method: "transfer",
+      note: "January utilities",
+    };
+    setType(existing.type);
+    setCategory(existing.category);
+    setForm({
+      name: existing.name,
+      amount: existing.amount,
+      date: toDateInput(existing.date),
+      method: existing.method,
+      note: existing.note,
+    });
+  }, []);
+
+  const handleChange = (key, value) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSave = () => {
+    // TODO: PUT to backend here
+    router.push("/dashboard");
+  };
+
+  const goLogin = () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {}
+    router.push("/login");
+  };
 
   // ESC closes menu
   useEffect(() => {
@@ -19,26 +88,18 @@ export default function AddTransactionPage() {
     };
   }, []);
 
-  const goLogin = () => {
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch {}
-    router.push("/login");
-  };
-
   return (
     <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f]">
-    {/* Header - back to dashboard */}
-    <div
-      className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 cursor-pointer"
-      onClick={() => router.push("/dashboard")}
-    >
-      <div className="flex items-center space-x-2">
-        <ChevronLeft className="text-[#6b3e1f]" size={22} />
-        <span className="font-semibold">Back</span>
-      </div>
-  
+      {/* Header - back to dashboard */}
+      <div
+        className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 cursor-pointer"
+        onClick={() => router.push("/details")}
+      >
+        <div className="flex items-center space-x-2">
+          <ChevronLeft className="text-[#6b3e1f]" size={22} />
+          <span className="font-semibold">Back</span>
+        </div>
+
         {/* Hamburger */}
         <button
           aria-label="Open menu"
@@ -49,12 +110,12 @@ export default function AddTransactionPage() {
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
 
-        {/* Overlay */}
+        {/* Click-away overlay */}
         {menuOpen && (
           <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
         )}
 
-        {/* Dropdown */}
+        {/* Dropdown: Profile + Log out */}
         {menuOpen && (
           <div
             className="absolute right-2 top-12 z-20 w-40 rounded-md border border-[#cbb89d] bg-white shadow-md overflow-hidden"
@@ -83,8 +144,8 @@ export default function AddTransactionPage() {
         )}
       </div>
 
-      {/* Title (same spacing as EditTransactionPage) */}
-      <h1 className="text-lg font-semibold mt-6">Add Transaction</h1>
+      {/* ↓ Title moved slightly down */}
+      <h1 className="text-lg font-semibold mt-6">Edit Transaction</h1>
 
       {/* Form */}
       <div className="mt-4 w-72 space-y-3 text-sm">
@@ -93,6 +154,8 @@ export default function AddTransactionPage() {
           <label className="font-semibold">Name</label>
           <input
             type="text"
+            value={form.name}
+            onChange={(e) => handleChange("name", e.target.value)}
             className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
           />
         </div>
@@ -103,13 +166,15 @@ export default function AddTransactionPage() {
           <div className="flex items-center space-x-2">
             <input
               type="number"
+              value={form.amount}
+              onChange={(e) => handleChange("amount", e.target.value)}
               className="flex-1 border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
             />
             <span>Baht</span>
           </div>
         </div>
 
-        {/* Type */}
+        {/* Type (toggle) */}
         <div>
           <label className="font-semibold">Type</label>
           <div className="flex space-x-2 mt-1">
@@ -149,12 +214,12 @@ export default function AddTransactionPage() {
             className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
           >
             <option value="">Select Category</option>
-            <option value="Food">Food</option>
-            <option value="Shopping">Shopping</option>
-            <option value="Bill">Bill</option>
-            <option value="Travel">Travel</option>
-            <option value="Salary">Salary</option>
-            <option value="Others">Other</option>
+            <option>Food</option>
+            <option>Shopping</option>
+            <option>Bill</option>
+            <option>Travel</option>
+            <option>Salary</option>
+            <option>Other</option>
           </select>
         </div>
 
@@ -163,6 +228,8 @@ export default function AddTransactionPage() {
           <label className="font-semibold">Date</label>
           <input
             type="date"
+            value={form.date}
+            onChange={(e) => handleChange("date", e.target.value)}
             className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
           />
         </div>
@@ -170,7 +237,11 @@ export default function AddTransactionPage() {
         {/* Payment Method */}
         <div>
           <label className="font-semibold">Payment Method</label>
-          <select className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none">
+          <select
+            value={form.method}
+            onChange={(e) => handleChange("method", e.target.value)}
+            className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
+          >
             <option value="">Select Method</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -183,6 +254,8 @@ export default function AddTransactionPage() {
           <label className="font-semibold">Note</label>
           <textarea
             rows="2"
+            value={form.note}
+            onChange={(e) => handleChange("note", e.target.value)}
             className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
           />
         </div>
@@ -195,11 +268,15 @@ export default function AddTransactionPage() {
           </div>
         </div>
 
-        {/* Save Button */}
+        {/* Save */}
+        {/* Save */}
     <div className="mt-8 flex justify-center">
-    <button className="bg-[#d5853c] text-white font-semibold rounded-md px-6 py-2 shadow-md hover:bg-[#b96f2f]">
+    <button
+    onClick={handleSave}
+    className="bg-[#d5853c] text-white font-semibold rounded-md px-6 py-2 shadow-md hover:bg-[#b96f2f]"
+     >
     Save Transaction
-    </button>
+  </button>
     </div>
       </div>
     </div>

@@ -13,10 +13,9 @@ import {
 export default function ChartDetail() {
   const router = useRouter();
 
-  const data = [
-    { name: "Bill", value: 25, color: "#a9bcd0" },
-    { name: "Food", value: 25, color: "#f3a7d3" },
-    { name: "Shopping", value: 50, color: "#c5a3e8" },
+  // base data: Shopping only, 100%
+  const baseData = [
+    { name: "Shopping", value: 100, color: "#c5a3e8" },
   ];
 
   // click category → go to Transaction Details (frontend only for now)
@@ -31,6 +30,9 @@ export default function ChartDetail() {
   const [typeFilter, setTypeFilter] = useState("");
   const [startDate, setStartDate] = useState(""); // yyyy-mm-dd
   const [endDate, setEndDate] = useState("");     // yyyy-mm-dd
+
+  // this page is Shopping-only
+  const [activeCategory] = useState("Shopping");
 
   // helper to format yyyy-mm-dd → "1 Nov 2025"
   const formatPrettyDate = (iso) => {
@@ -70,18 +72,22 @@ export default function ChartDetail() {
     if (typeFilter) params.set("type", typeFilter);
   
     const qs = params.toString();
-
+  
     router.push(qs ? `/category?${qs}` : "/category");
   
     setFiltersOpen(false);
   };
   
+
+  // pie is always Shopping-only here
+  const pieData = baseData;
+
   return (
     <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f] pb-24 overflow-y-auto">
       {/* Header - back to dashboard */}
       <div
         className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 cursor-pointer"
-        onClick={() => router.push("/dashboard")}
+        onClick={() => router.push("/chart")}
       >
         <div className="flex items-center space-x-2">
           <ChevronLeft className="text-[#6b3e1f]" size={22} />
@@ -140,7 +146,7 @@ export default function ChartDetail() {
               Selected: <span className="font-semibold">{rangeLabel}</span>
             </p>
 
-            {/* Category */}
+            {/* Category (can still choose but page is Shopping-only) */}
             <div>
               <label className="block text-xs font-semibold mb-1">
                 Category
@@ -151,12 +157,7 @@ export default function ChartDetail() {
                 className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
               >
                 <option value="">All</option>
-                <option value="Food">Food</option>
                 <option value="Shopping">Shopping</option>
-                <option value="Bill">Bill</option>
-                <option value="Food">Travel</option>
-                <option value="Food">Salary</option>
-                <option value="Other">Other</option>
               </select>
             </div>
 
@@ -216,12 +217,12 @@ export default function ChartDetail() {
         )}
       </div>
 
-      {/* Pie Chart */}
+      {/* Pie Chart – Shopping only */}
       <div className="mt-3 border border-[#8b6b49] p-2 rounded-md">
         <ResponsiveContainer width={200} height={180}>
           <PieChart>
-            <Pie data={data} cx="50%" cy="50%" outerRadius={70} dataKey="value">
-              {data.map((entry, index) => (
+            <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+              {pieData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>
@@ -229,7 +230,7 @@ export default function ChartDetail() {
         </ResponsiveContainer>
       </div>
 
-      {/* Category Breakdown (rows clickable → transaction-detail) */}
+      {/* Category Breakdown – Shopping only */}
       <div className="mt-4 w-64 mb-4">
         <div className="flex justify-between text-sm font-semibold border-b border-[#cbb89d] pb-1 mb-2">
           <span>Category</span>
@@ -245,55 +246,21 @@ export default function ChartDetail() {
             <span className="bg-[#c5a3e8] text-[#6b3e1f] px-2 py-0.5 rounded">
               Shopping
             </span>
-            <span>50%</span>
-            <span>100.00฿</span>
-          </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Bill")}
-          >
-            <span className="bg-[#a9bcd0] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Bill
-            </span>
-            <span>25%</span>
-            <span>100.00฿</span>
-          </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Food")}
-          >
-            <span className="bg-[#f3a7d3] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Food
-            </span>
-            <span>25%</span>
-            <span>50.00฿</span>
-          </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Other")}
-          >
-            <span className="bg-[#d6b999] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Other
-            </span>
-            <span>0%</span>
-            <span>00.00฿</span>
+            <span>100%</span>
+            <span>300.00฿</span>
           </div>
         </div>
       </div>
 
       {/* Bottom Add Button */}
       <div className="w-full bg-[#ead7c2] py-3 flex justify-center fixed bottom-0 left-0 z-20">
-  <button
-    onClick={() => router.push("/transaction")}
-    className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
-  >
-    <Plus size={22} />
-  </button>
-</div>
-
+        <button
+          onClick={() => router.push("/transaction")}
+          className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
+        >
+          <Plus size={22} />
+        </button>
+      </div>
     </div>
   );
 }
