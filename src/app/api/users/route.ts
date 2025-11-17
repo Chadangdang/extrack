@@ -150,14 +150,16 @@ export async function POST(request: Request) {
       { message: "User created successfully.", userId: newUser.userId },
       { status: 201 }
     );
-  } catch (error) {
+    } catch (error: unknown) {
     console.error("Failed to create user", error);
 
-    // TEMP: send back error.message for debugging (remove in production)
+    const message =
+      error instanceof Error ? error.message : String(error);
+
     return NextResponse.json(
       {
         message: "Failed to create user.",
-        error: error?.message ?? String(error),
+        error: message,
       },
       { status: 500 }
     );
