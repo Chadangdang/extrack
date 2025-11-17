@@ -34,7 +34,7 @@ export default function EditCategory() {
   };
 
   const handleLogout = () => {
-    router.push('/login');
+    router.push('/admin/loginadmin');
   };
 
   return (

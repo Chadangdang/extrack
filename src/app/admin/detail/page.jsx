@@ -34,9 +34,9 @@ export default function UserDetails() {
   };
 
   const handleLogout = () => {
-    router.push('/login'); // unchanged
+    router.push('/admin/loginadmin');
   };
-
+  
   return (
     <div className="min-h-screen bg-[#F8F3ED] flex flex-col">
       {/* Top Header */}

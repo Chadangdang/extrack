@@ -30,7 +30,7 @@ export default function AddCategory() {
   };
 
   const handleLogout = () => {
-    router.push('/login');
+    router.push('/admin/loginadmin');
   };
 
   return (
