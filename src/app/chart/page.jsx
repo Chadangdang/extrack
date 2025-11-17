@@ -1,7 +1,18 @@
 "use client";
+
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from "recharts";
 import {
   ChevronLeft,
   ChevronRight,
@@ -10,91 +21,344 @@ import {
   Filter,
 } from "lucide-react";
 
+import { getLookups, getTransactionsByMonth } from "@/lib/api";
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatCurrency(value) {
+  const amount = Number(value) || 0;
+  return `${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}฿`;
+}
+
+function formatPrettyDate(iso) {
+  if (!iso) return "";
+  const [yyyy, mm, dd] = iso.split("-");
+  const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+  if (Number.isNaN(date.getTime())) return iso;
+  return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function monthLabel(yyyy, mm) {
+  const d = new Date(Number(yyyy), Number(mm) - 1, 1);
+  return d
+    .toLocaleDateString("en-US", { month: "long", year: "numeric" })
+    .toUpperCase();
+}
+
+function shiftMonth({ yyyy, mm }, delta) {
+  const d = new Date(Number(yyyy), Number(mm) - 1, 1);
+  d.setMonth(d.getMonth() + delta);
+  return {
+    yyyy: String(d.getFullYear()),
+    mm: String(d.getMonth() + 1).padStart(2, "0"),
+  };
+}
+
+function getMonthBounds({ yyyy, mm }) {
+  const start = new Date(Number(yyyy), Number(mm) - 1, 1);
+  const end = new Date(Number(yyyy), Number(mm), 0);
+  const now = new Date();
+  const sameMonth =
+    start.getFullYear() === now.getFullYear() &&
+    start.getMonth() === now.getMonth();
+  const effectiveEnd = sameMonth
+    ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    : end;
+  return { start, end: effectiveEnd };
+}
+
+function formatInputDate(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function ChartDetail() {
   const router = useRouter();
 
-  const data = [
-    { name: "Bill", value: 25, color: "#a9bcd0" },
-    { name: "Food", value: 25, color: "#f3a7d3" },
-    { name: "Shopping", value: 50, color: "#c5a3e8" },
-  ];
-
-  // click category → go to Transaction Details (frontend only for now)
-  const goCategory = (cat) => {
-    router.push(`/transaction-detail?category=${encodeURIComponent(cat)}`);
-  };
-
-  // filter panel state
+  const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [startDate, setStartDate] = useState(""); // yyyy-mm-dd
-  const [endDate, setEndDate] = useState("");     // yyyy-mm-dd
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  // helper to format yyyy-mm-dd → "1 Nov 2025"
-  const formatPrettyDate = (iso) => {
-    if (!iso) return "";
-    const [y, m, d] = iso.split("-");
-    const date = new Date(Number(y), Number(m) - 1, Number(d));
-    if (Number.isNaN(date.getTime())) return iso;
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return {
+      yyyy: String(now.getFullYear()),
+      mm: String(now.getMonth() + 1).padStart(2, "0"),
+    };
+  });
+
+  const [categories, setCategories] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const lookups = await getLookups();
+        if (!active) return;
+        setCategories(lookups?.categories || []);
+        const methods =
+          lookups?.paymentMethods ||
+          lookups?.payment_methods ||
+          lookups?.methods ||
+          [];
+        setPaymentMethods(methods);
+      } catch (err) {
+        console.error("Chart lookups error:", err);
+        if (!active) return;
+        setCategories([]);
+        setPaymentMethods([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const txs = await getTransactionsByMonth(
+        selectedMonth.yyyy,
+        selectedMonth.mm
+      );
+      setTransactions(Array.isArray(txs) ? txs : []);
+    } catch (err) {
+      console.error("Chart transactions error:", err);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    setStartDate("");
+    setEndDate("");
+  }, [selectedMonth]);
+
+  const monthBounds = useMemo(
+    () => getMonthBounds(selectedMonth),
+    [selectedMonth]
+  );
+
+  const monthStartInput = formatInputDate(monthBounds.start);
+  const monthEndInput = formatInputDate(monthBounds.end);
+
+  const handleStartChange = (value) => {
+    if (value && (value < monthStartInput || value > monthEndInput)) {
+      return;
+    }
+    setStartDate(value);
+    setEndDate((prev) => (value && prev && prev < value ? value : prev));
   };
 
-  // text under filter: month name by default, otherwise range
-  const rangeLabel = (() => {
-    if (!startDate && !endDate) {
-      return "November 2025"; // default month name
+  const handleEndChange = (value) => {
+    if (value && (value < monthStartInput || value > monthEndInput)) {
+      return;
     }
-    if (startDate && endDate) {
-      return `${formatPrettyDate(startDate)} - ${formatPrettyDate(endDate)}`;
+    setEndDate(value);
+    setStartDate((prev) => (value && prev && prev > value ? value : prev));
+  };
+
+  const effectiveStart = startDate || endDate || "";
+  const effectiveEnd = endDate || startDate || "";
+
+  const rangeLabel = useMemo(() => {
+    if (!effectiveStart && !effectiveEnd) {
+      return monthLabel(selectedMonth.yyyy, selectedMonth.mm);
     }
-    if (startDate) return formatPrettyDate(startDate);
-    if (endDate) return formatPrettyDate(endDate);
-    return "November 2025";
-  })();
+    if (effectiveStart === effectiveEnd) {
+      return formatPrettyDate(effectiveStart);
+    }
+    return `${formatPrettyDate(effectiveStart)} - ${formatPrettyDate(
+      effectiveEnd
+    )}`;
+  }, [effectiveEnd, effectiveStart, selectedMonth]);
+
+  const colorMap = useMemo(() => {
+    const m = new Map();
+    categories.forEach((c) => m.set(c.key, c.color));
+    return m;
+  }, [categories]);
+
+  const filteredTransactions = useMemo(() => {
+    const startTs = effectiveStart ? new Date(effectiveStart).setHours(0, 0, 0, 0) : null;
+    const endTs = effectiveEnd ? new Date(effectiveEnd).setHours(23, 59, 59, 999) : null;
+
+    return transactions.filter((tx) => {
+      if (typeFilter && tx.type !== typeFilter) return false;
+      if (categoryFilter && tx.category !== categoryFilter) return false;
+
+      const txPayment =
+        tx.paymentMethod ||
+        tx.paymentMethodKey ||
+        tx.payment_method;
+      if (methodFilter && txPayment !== methodFilter) return false;
+
+      if (startTs || endTs) {
+        const dateValue = tx.date || tx.createdAt || tx.updatedAt;
+        if (!dateValue) return false;
+        const normalizedDate = new Date(dateValue);
+        if (Number.isNaN(normalizedDate.getTime())) return false;
+        const dayStart = normalizedDate.setHours(0, 0, 0, 0);
+        if (startTs && dayStart < startTs) return false;
+        if (endTs && dayStart > endTs) return false;
+      }
+      return true;
+    });
+  }, [
+    transactions,
+    categoryFilter,
+    methodFilter,
+    typeFilter,
+    effectiveStart,
+    effectiveEnd,
+  ]);
+
+  const pieData = useMemo(() => {
+    const grouped = new Map();
+    filteredTransactions.forEach((tx) => {
+      const amount = Number(tx.amount) || 0;
+      const key = tx.category;
+      grouped.set(key, (grouped.get(key) || 0) + amount);
+    });
+
+    return Array.from(grouped.entries()).map(([key, value]) => ({
+      key,
+      name: categories.find((c) => c.key === key)?.name || key,
+      value,
+      color: colorMap.get(key) || "#d5cbbb",
+    }));
+  }, [filteredTransactions, categories, colorMap]);
+
+  const totalValue = useMemo(
+    () => pieData.reduce((sum, entry) => sum + entry.value, 0),
+    [pieData]
+  );
+
+  const categoryRows = useMemo(() => {
+    return [...pieData].sort((a, b) => b.value - a.value);
+  }, [pieData]);
+
+  const goCategory = (cat) => {
+    router.push(`/transaction-detail?category=${encodeURIComponent(cat)}`);
+  };
+
+  const goPrevMonth = () => setSelectedMonth((prev) => shiftMonth(prev, -1));
+  const goNextMonth = () => setSelectedMonth((prev) => shiftMonth(prev, 1));
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("username");
+    } catch {}
+    setMenuOpen(false);
+    router.replace("/login");
+  };
 
   const handleApplyFilter = () => {
-    const params = new URLSearchParams();
-  
-    if (startDate) params.set("start", startDate);
-    if (endDate) params.set("end", endDate);
-  
-    if (!startDate && !endDate) {
-      params.set("month", "2025-11"); // NOVEMBER 2025
-    }
-  
-    if (categoryFilter) params.set("category", categoryFilter);
-    if (methodFilter) params.set("method", methodFilter);
-    if (typeFilter) params.set("type", typeFilter);
-  
-    const qs = params.toString();
-
-    router.push(qs ? `/category?${qs}` : "/category");
-  
+    fetchTransactions();
     setFiltersOpen(false);
   };
-  
+
+  const startInputMax = monthEndInput;
+  const endInputMin = startDate || monthStartInput;
+
   return (
     <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f] pb-24 overflow-y-auto">
-      {/* Header - back to dashboard */}
-      <div
-        className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 cursor-pointer"
-        onClick={() => router.push("/dashboard")}
-      >
-        <div className="flex items-center space-x-2">
-          <ChevronLeft className="text-[#6b3e1f]" size={22} />
-          <span className="font-semibold">Back</span>
-        </div>
-        <Menu className="text-[#6b3e1f]" size={24} />
+      {/* Header */}
+      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+        <button
+          type="button"
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center space-x-2 text-[#6b3e1f] font-semibold"
+        >
+          <ChevronLeft size={20} />
+          <span>Back</span>
+        </button>
+
+        <button
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+          className="p-2 rounded hover:bg-[#e3cdb4]"
+        >
+          <Menu className="text-[#6b3e1f]" size={22} />
+        </button>
+
+        {menuOpen && (
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        {menuOpen && (
+          <div className="absolute right-2 top-12 z-20 w-44 rounded-md border border-[#cbb89d] bg-white shadow-md">
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              onClick={() => {
+                setMenuOpen(false);
+                router.push("/profile");
+              }}
+            >
+              Profile
+            </button>
+            <div className="h-px bg-[#ead7c2]" />
+            <button
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              onClick={handleLogout}
+            >
+              Log out
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Month Title */}
       <div className="flex items-center justify-center space-x-2 mt-3">
-        <ChevronLeft className="text-[#6b3e1f]" size={18} />
-        <h1 className="text-lg font-semibold text-[#5F5F5F]">NOVEMBER 2025</h1>
-        <ChevronRight className="text-[#5F5F5F]" size={18} />
+        <button type="button" onClick={goPrevMonth}>
+          <ChevronLeft className="text-[#6b3e1f]" size={18} />
+        </button>
+        <h1 className="text-lg font-semibold text-[#5F5F5F]">
+          {monthLabel(selectedMonth.yyyy, selectedMonth.mm)}
+        </h1>
+        <button type="button" onClick={goNextMonth}>
+          <ChevronRight className="text-[#5F5F5F]" size={18} />
+        </button>
       </div>
 
       {/* Filter bar */}
@@ -109,7 +373,6 @@ export default function ChartDetail() {
 
         {filtersOpen && (
           <div className="mt-2 border border-[#cbb89d] rounded-md p-3 bg-[#fff9f0] space-y-2 text-sm">
-            {/* Date range (calendar inputs) */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-semibold mb-1">
@@ -118,7 +381,9 @@ export default function ChartDetail() {
                 <input
                   type="date"
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  min={monthStartInput}
+                  max={startInputMax}
+                  onChange={(e) => handleStartChange(e.target.value)}
                   className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
                 />
               </div>
@@ -129,18 +394,18 @@ export default function ChartDetail() {
                 <input
                   type="date"
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  min={endInputMin}
+                  max={monthEndInput}
+                  onChange={(e) => handleEndChange(e.target.value)}
                   className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
                 />
               </div>
             </div>
 
-            {/* Display current selection */}
             <p className="text-xs text-[#6b3e1f]/70 mt-1">
               Selected: <span className="font-semibold">{rangeLabel}</span>
             </p>
 
-            {/* Category */}
             <div>
               <label className="block text-xs font-semibold mb-1">
                 Category
@@ -151,16 +416,14 @@ export default function ChartDetail() {
                 className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
               >
                 <option value="">All</option>
-                <option value="Food">Food</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Bill">Bill</option>
-                <option value="Food">Travel</option>
-                <option value="Food">Salary</option>
-                <option value="Other">Other</option>
+                {categories.map((cat) => (
+                  <option key={cat.key} value={cat.key}>
+                    {cat.name}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Payment method */}
             <div>
               <label className="block text-xs font-semibold mb-1">
                 Payment Method
@@ -171,13 +434,14 @@ export default function ChartDetail() {
                 className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
               >
                 <option value="">All</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="transfer">Bank Transfer</option>
+                {paymentMethods.map((method) => (
+                  <option key={method.key || method.id} value={method.key || method.id}>
+                    {method.name || method.label || method.title}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {/* Type */}
             <div>
               <label className="block text-xs font-semibold mb-1">Type</label>
               <div className="flex gap-2">
@@ -202,7 +466,6 @@ export default function ChartDetail() {
               </div>
             </div>
 
-            {/* Apply */}
             <div className="flex justify-end pt-1">
               <button
                 type="button"
@@ -217,83 +480,72 @@ export default function ChartDetail() {
       </div>
 
       {/* Pie Chart */}
-      <div className="mt-3 border border-[#8b6b49] p-2 rounded-md">
-        <ResponsiveContainer width={200} height={180}>
-          <PieChart>
-            <Pie data={data} cx="50%" cy="50%" outerRadius={70} dataKey="value">
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
+      <div className="mt-3 border border-[#8b6b49] p-3 rounded-md w-72 flex flex-col items-center">
+        {loading ? (
+          <p>Loading chart...</p>
+        ) : pieData.length === 0 ? (
+          <p>No data for this selection.</p>
+        ) : (
+          <ResponsiveContainer width={200} height={180}>
+            <PieChart>
+              <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value">
+                {pieData.map((entry) => (
+                  <Cell key={entry.key} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
-      {/* Category Breakdown (rows clickable → transaction-detail) */}
-      <div className="mt-4 w-64 mb-4">
+      {/* Category Breakdown */}
+      <div className="mt-4 w-72 mb-4">
         <div className="flex justify-between text-sm font-semibold border-b border-[#cbb89d] pb-1 mb-2">
           <span>Category</span>
           <span>(%)</span>
           <span>Baht</span>
         </div>
 
-        <div className="space-y-2 text-sm">
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Shopping")}
-          >
-            <span className="bg-[#c5a3e8] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Shopping
-            </span>
-            <span>50%</span>
-            <span>100.00฿</span>
+        {categoryRows.length === 0 ? (
+          <p className="text-center text-sm text-[#6b3e1f]/70">
+            No transactions found.
+          </p>
+        ) : (
+          <div className="space-y-2 text-sm">
+            {categoryRows.map((row) => (
+              <div
+                key={row.key}
+                className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
+                onClick={() => goCategory(row.key)}
+              >
+                <span
+                  className="text-[#6b3e1f] px-2 py-0.5 rounded"
+                  style={{ backgroundColor: row.color || "#ead7c2" }}
+                >
+                  {row.name}
+                </span>
+                <span>
+                  {totalValue
+                    ? Math.round((row.value / totalValue) * 100)
+                    : 0}
+                  %
+                </span>
+                <span>{formatCurrency(row.value)}</span>
+              </div>
+            ))}
           </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Bill")}
-          >
-            <span className="bg-[#a9bcd0] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Bill
-            </span>
-            <span>25%</span>
-            <span>100.00฿</span>
-          </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Food")}
-          >
-            <span className="bg-[#f3a7d3] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Food
-            </span>
-            <span>25%</span>
-            <span>50.00฿</span>
-          </div>
-
-          <div
-            className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
-            onClick={() => goCategory("Other")}
-          >
-            <span className="bg-[#d6b999] text-[#6b3e1f] px-2 py-0.5 rounded">
-              Other
-            </span>
-            <span>0%</span>
-            <span>00.00฿</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Bottom Add Button */}
       <div className="w-full bg-[#ead7c2] py-3 flex justify-center fixed bottom-0 left-0 z-20">
-  <button
-    onClick={() => router.push("/transaction")}
-    className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
-  >
-    <Plus size={22} />
-  </button>
-</div>
-
+        <button
+          onClick={() => router.push("/transaction")}
+          className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
+        >
+          <Plus size={22} />
+        </button>
+      </div>
     </div>
   );
 }
