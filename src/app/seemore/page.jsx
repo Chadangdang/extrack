@@ -80,7 +80,7 @@ export default function SeeMorePage() {
           <span>Category</span>
           <span>Type</span>
           <span className="text-center">Date</span>
-          <span className="text-right">Baht</span>
+          <span className="text-right">Amount</span>
         </div>
 
         <ul className="space-y-3 text-sm">
