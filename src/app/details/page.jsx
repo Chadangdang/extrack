@@ -2,7 +2,9 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, Menu, Trash2, Pencil } from "lucide-react";
+import { ChevronLeft, Menu, Trash2, Pencil, X } from "lucide-react";
+
+import { deleteTransaction, getReceiptViewUrl } from "@/lib/api";
 
 function formatCurrency(value) {
   const amount = Number(value) || 0;
@@ -30,10 +32,21 @@ export default function TransactionDetailPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [transaction, setTransaction] = useState(null);
   const [receiptUrl, setReceiptUrl] = useState("");
+  const [imageFit, setImageFit] = useState("square");
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // ESC closes menu
   useEffect(() => {
-    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+        setImageModalOpen(false);
+      }
+    };
     if (typeof window !== "undefined") window.addEventListener("keydown", onKey);
     return () => {
       if (typeof window !== "undefined") window.removeEventListener("keydown", onKey);
@@ -41,15 +54,39 @@ export default function TransactionDetailPage() {
   }, []);
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem("selectedTransaction");
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      setTransaction(parsed);
-      if (parsed.receiptUrl) setReceiptUrl(parsed.receiptUrl);
-    } catch (err) {
-      console.error("Failed to load transaction detail", err);
+    let active = true;
+
+    async function loadTransaction() {
+      try {
+        const raw = sessionStorage.getItem("selectedTransaction");
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!active) return;
+        setTransaction(parsed);
+
+        if (parsed.receiptUrl) {
+          setReceiptUrl(parsed.receiptUrl);
+          return;
+        }
+
+        if (parsed.receiptKey) {
+          try {
+            const { url } = await getReceiptViewUrl(parsed.receiptKey);
+            if (active) setReceiptUrl(url || "");
+          } catch (err) {
+            console.error("Failed to load receipt URL", err);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load transaction detail", err);
+      }
     }
+
+    loadTransaction();
+
+    return () => {
+      active = false;
+    };
   }, [txParam]);
 
   const goLogin = () => {
@@ -86,6 +123,46 @@ export default function TransactionDetailPage() {
     type === "Income"
       ? "bg-[#a8cbb1] text-[#2f5f2f]"
       : "bg-[#d9a3a3] text-[#5f2f2f]";
+
+  const handleImageLoad = (event) => {
+    const { naturalWidth, naturalHeight } = event.currentTarget || {};
+    if (!naturalWidth || !naturalHeight) return;
+    if (naturalWidth === naturalHeight) {
+      setImageFit("square");
+    } else if (naturalWidth > naturalHeight) {
+      setImageFit("fit-width");
+    } else {
+      setImageFit("fit-height");
+    }
+  };
+
+  const imageSizingClass = {
+    "fit-width": "w-full h-auto",
+    "fit-height": "h-full w-auto",
+    square: "w-full h-full",
+  }[imageFit];
+
+  const handleDeleteTransaction = async () => {
+    if (!transaction) return;
+    const key = transaction.sk || transaction.id || transaction._id;
+    if (!key) {
+      setDeleteError("Missing transaction identifier.");
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await deleteTransaction(key);
+      setConfirmDelete(false);
+      router.push("/seemore");
+    } catch (err) {
+      console.error("Failed to delete transaction", err);
+      setDeleteError("Failed to delete this transaction. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f9f3ec] text-[#6b3e1f] flex flex-col items-center pb-24">
@@ -151,25 +228,33 @@ export default function TransactionDetailPage() {
       <div className="w-full max-w-sm px-8 pt-6">
         {/* Receipt placeholder + trash */}
         <div className="mt-6 relative flex justify-center">
-          {/* TRUE SQUARE BOX (240x240px) */}
-          {receiptUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={receiptUrl}
-              alt="Transaction receipt"
-              className="w-60 h-60 object-cover rounded-md border border-[#ead7c2]"
-            />
-          ) : (
-            <div className="w-60 h-60 bg-[#e8ddcf] rounded-md" />
-          )}
+          <div className="w-60 h-60 rounded-md border border-[#ead7c2] bg-[#e8ddcf] overflow-hidden flex items-center justify-center">
+            {receiptUrl ? (
+              <button
+                type="button"
+                onClick={() => setImageModalOpen(true)}
+                className="w-full h-full flex items-center justify-center"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={receiptUrl}
+                  alt="Transaction receipt"
+                  onLoad={handleImageLoad}
+                  className={`${imageSizingClass} object-contain rounded-md pointer-events-none select-none`}
+                />
+              </button>
+            ) : (
+              <div className="w-full h-full" />
+            )}
+          </div>
 
           {/* SMALLER TRASH ICON + POSITION FIX */}
           <button
             className="absolute -top-3 -right-4 text-red-500 hover:opacity-80 active:scale-95 transition"
             type="button"
-            onClick={() => console.log("delete clicked")}
+            onClick={() => setConfirmDelete(true)}
           >
-            <Trash2 size={22} /> {/* SMALLER */}
+            <Trash2 size={22} />
           </button>
         </div>
 
@@ -208,6 +293,61 @@ export default function TransactionDetailPage() {
       >
         <Pencil size={22} />
       </button>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-sm rounded-lg bg-white p-5 text-center space-y-4">
+            <p className="text-lg font-semibold text-[#6b3e1f]">
+              Do you wanna delete this transaction?
+            </p>
+            {deleteError && (
+              <p className="text-sm text-red-600">{deleteError}</p>
+            )}
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                className="px-4 py-2 rounded border border-[#cbb89d] text-[#6b3e1f] hover:bg-[#f9f3ec]"
+                onClick={() => {
+                  setDeleteError("");
+                  setConfirmDelete(false);
+                }}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-70"
+                onClick={handleDeleteTransaction}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {imageModalOpen && receiptUrl && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-4">
+          <div className="relative bg-white p-4 rounded-lg max-w-2xl w-full">
+            <button
+              type="button"
+              aria-label="Close image"
+              className="absolute top-2 right-2 text-[#6b3e1f] hover:text-black"
+              onClick={() => setImageModalOpen(false)}
+            >
+              <X size={20} />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={receiptUrl}
+              alt="Transaction receipt preview"
+              className="w-full h-auto max-h-[75vh] object-contain rounded-md"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
