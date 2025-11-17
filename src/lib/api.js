@@ -89,3 +89,14 @@ export function createTransaction(data) {
 export function deleteTransaction(sk) {
   return request("POST", "/transactions/delete", {}, { sk });
 }
+
+/* ============================
+   RECEIPTS (S3)
+============================ */
+export function getReceiptUploadUrl(fileName, fileType) {
+  return request("GET", "/upload-url", { fileName, fileType });
+}
+
+export function getReceiptViewUrl(receiptKey) {
+  return request("GET", "/receipt-url", { key: receiptKey });
+}
