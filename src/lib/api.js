@@ -14,13 +14,19 @@ async function request(method, path, params = {}, body = null) {
   const token = typeof window !== "undefined"
     ? localStorage.getItem("token")
     : null;
+  const userId = typeof window !== "undefined"
+    ? localStorage.getItem("userId")
+    : null;
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(userId ? { "X-User-Id": userId } : {}),
+  };
 
   const res = await fetch(url, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
     body: body ? JSON.stringify(body) : undefined,
     cache: "no-store",
   });
@@ -59,6 +65,10 @@ export function getPaymentMethods() {
 ============================ */
 export function getCurrentUser() {
   return request("GET", "/users/me");
+}
+
+export function getAllUsers() {
+  return request("GET", "/users");
 }
 
 /* ============================

@@ -5,6 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { User, Lock } from "lucide-react";
+import { getAllUsers } from "@/lib/api"; // 👈 NEW
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,8 +14,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   // Temporary fake login (until real /auth/login is added)
-  // Checks username != "" and password != ""
-  const handleLogin = (e) => {
+  // Match by username (or email) and store the real userId
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!username || !password) {
@@ -22,11 +23,42 @@ export default function LoginPage() {
       return;
     }
 
-    // Save session to localStorage
-    localStorage.setItem("username", username);
+    try {
+      // 1) Load all users from the backend
+      const users = await getAllUsers();
 
-    // Redirect to dashboard with username
-    router.push(`/dashboard?user=${encodeURIComponent(username)}`);
+      const input = username.trim().toLowerCase();
+
+      // 2) Find a user with matching username OR email
+      const matchedUser =
+        users.find(
+          (u) =>
+            (typeof u.username === "string" &&
+              u.username.toLowerCase() === input) ||
+            (typeof u.email === "string" &&
+              u.email.toLowerCase() === input)
+        ) || null;
+
+      if (!matchedUser) {
+        alert("User not found. Please check your username.");
+        return;
+      }
+
+      // 3) Save session data
+      //    username for display, userId for backend (X-User-Id header)
+      localStorage.setItem(
+        "username",
+        matchedUser.username || username
+      );
+      localStorage.setItem("userId", matchedUser.userId); // 👈 IMPORTANT
+
+      // 4) Redirect to dashboard with the display username
+      const displayName = matchedUser.username || username;
+      router.push(`/dashboard?user=${encodeURIComponent(displayName)}`);
+    } catch (err) {
+      console.error("Login failed", err);
+      alert("Login failed. Please try again.");
+    }
   };
 
   return (
@@ -36,7 +68,6 @@ export default function LoginPage() {
 
       <div className="w-full flex-1 flex items-start justify-center pt-6 pb-12 px-4">
         <div className="w-full max-w-sm bg-[#fbf7f3] rounded-2xl p-8 shadow-md text-center border border-transparent">
-          
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
             <div className="flex items-center justify-center">
@@ -54,7 +85,10 @@ export default function LoginPage() {
           {/* Form */}
           <form className="space-y-5" onSubmit={handleLogin}>
             <div className="relative">
-              <User className="absolute left-3 top-3 text-[#a06a3f]" size={20} />
+              <User
+                className="absolute left-3 top-3 text-[#a06a3f]"
+                size={20}
+              />
               <input
                 type="text"
                 placeholder="USERNAME"
@@ -66,7 +100,10 @@ export default function LoginPage() {
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3 top-3 text-[#a06a3f]" size={20} />
+              <Lock
+                className="absolute left-3 top-3 text-[#a06a3f]"
+                size={20}
+              />
               <input
                 type="password"
                 placeholder="PASSWORD"
@@ -78,7 +115,10 @@ export default function LoginPage() {
             </div>
 
             <div className="text-right">
-              <Link href="#" className="text-xs text-[#8b4f21] hover:underline">
+              <Link
+                href="#"
+                className="text-xs text-[#8b4f21] hover:underline"
+              >
                 Forgot Password?
               </Link>
             </div>
@@ -93,7 +133,10 @@ export default function LoginPage() {
 
           <p className="text-sm text-[#6b3e1f] mt-5">
             Don’t have an account?{" "}
-            <Link href="/signup" className="text-[#8b4f21] font-semibold hover:underline">
+            <Link
+              href="/signup"
+              className="text-[#8b4f21] font-semibold hover:underline"
+            >
               SIGN UP here
             </Link>
           </p>
