@@ -1,23 +1,35 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, Menu, Trash2, Pencil } from "lucide-react";
+
+function formatCurrency(value) {
+  const amount = Number(value) || 0;
+  return `${amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}฿`;
+}
+
+function formatDateLabel(iso) {
+  const d = new Date(iso ?? "");
+  if (Number.isNaN(d.getTime())) return iso ?? "";
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default function TransactionDetailPage() {
   const router = useRouter();
+  const params = useSearchParams();
+  const txParam = params?.get("tx") || "";
 
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // sample data (frontend only)
-  const transaction = {
-    name: "H&M Clothes",
-    category: "Shopping",
-    type: "Expense",
-    date: "1/11/25",
-    amount: "100฿",
-    note: "-",
-  };
+  const [transaction, setTransaction] = useState(null);
+  const [receiptUrl, setReceiptUrl] = useState("");
 
   // ESC closes menu
   useEffect(() => {
@@ -28,6 +40,18 @@ export default function TransactionDetailPage() {
     };
   }, []);
 
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("selectedTransaction");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      setTransaction(parsed);
+      if (parsed.receiptUrl) setReceiptUrl(parsed.receiptUrl);
+    } catch (err) {
+      console.error("Failed to load transaction detail", err);
+    }
+  }, [txParam]);
+
   const goLogin = () => {
     try {
       localStorage.clear();
@@ -35,6 +59,33 @@ export default function TransactionDetailPage() {
     } catch {}
     router.push("/login");
   };
+
+  const detailRows = useMemo(() => {
+    if (!transaction) return [];
+    return [
+      { label: "Name", value: transaction.name || "-" },
+      {
+        label: "Category",
+        value: transaction.categoryName || transaction.category || "-",
+        badge: true,
+      },
+      { label: "Type", value: transaction.type || "-", type: transaction.type },
+      {
+        label: "Date",
+        value: formatDateLabel(transaction.date || transaction.createdAt),
+      },
+      {
+        label: "Amount",
+        value: formatCurrency(transaction.amount),
+      },
+      { label: "Note", value: transaction.note || "-" },
+    ];
+  }, [transaction]);
+
+  const typeClasses = (type) =>
+    type === "Income"
+      ? "bg-[#a8cbb1] text-[#2f5f2f]"
+      : "bg-[#d9a3a3] text-[#5f2f2f]";
 
   return (
     <div className="min-h-screen bg-[#f9f3ec] text-[#6b3e1f] flex flex-col items-center pb-24">
@@ -101,7 +152,16 @@ export default function TransactionDetailPage() {
         {/* Receipt placeholder + trash */}
         <div className="mt-6 relative flex justify-center">
           {/* TRUE SQUARE BOX (240x240px) */}
-          <div className="w-60 h-60 bg-[#e8ddcf] rounded-md" />
+          {receiptUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={receiptUrl}
+              alt="Transaction receipt"
+              className="w-60 h-60 object-cover rounded-md border border-[#ead7c2]"
+            />
+          ) : (
+            <div className="w-60 h-60 bg-[#e8ddcf] rounded-md" />
+          )}
 
           {/* SMALLER TRASH ICON + POSITION FIX */}
           <button
@@ -115,39 +175,28 @@ export default function TransactionDetailPage() {
 
         {/* Info rows */}
         <div className="mt-10 space-y-5 text-base">
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Name</span>
-            <span>{transaction.name}</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Category</span>
-            <span className="bg-[#c5a3e8] text-[#6b3e1f] px-3 py-0.5 rounded">
-              {transaction.category}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Type</span>
-            <span className="bg-[#d9a3a3] text-[#5f2f2f] px-3 py-0.5 rounded">
-              {transaction.type}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Date</span>
-            <span>{transaction.date}</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Baht</span>
-            <span>{transaction.amount}</span>
-          </div>
-
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">Note</span>
-            <span>{transaction.note}</span>
-          </div>
+          {transaction ? (
+            detailRows.map((row) => (
+              <div key={row.label} className="flex justify-between items-center">
+                <span className="font-semibold">{row.label}</span>
+                {row.badge ? (
+                  <span className="bg-[#c5a3e8] text-[#6b3e1f] px-3 py-0.5 rounded">
+                    {row.value}
+                  </span>
+                ) : row.type ? (
+                  <span className={`${typeClasses(row.type)} px-3 py-0.5 rounded`}>
+                    {row.value}
+                  </span>
+                ) : (
+                  <span>{row.value}</span>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-sm text-[#8b4f21]">
+              No transaction selected. Please go back and pick one.
+            </p>
+          )}
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
 
 import { getLookups, getTransactionsByMonth } from "@/lib/api";
 
@@ -74,8 +74,15 @@ export default function SeeMorePage() {
     parseMonthParams(params)
   );
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     setSelectedMonth(parseMonthParams(params));
@@ -139,9 +146,33 @@ export default function SeeMorePage() {
   const goPrevMonth = () => setSelectedMonth((prev) => shiftMonth(prev, -1));
   const goNextMonth = () => setSelectedMonth((prev) => shiftMonth(prev, 1));
 
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("username");
+    } catch {}
+    setMenuOpen(false);
+    router.replace("/login");
+  };
+
+  const handleCardClick = (tx) => {
+    try {
+      const payload = {
+        ...tx,
+        categoryName: categoryNameMap.get(tx.category) || tx.category,
+      };
+      sessionStorage.setItem("selectedTransaction", JSON.stringify(payload));
+    } catch (err) {
+      console.error("Failed to cache transaction", err);
+    }
+
+    const key = tx.sk || tx.id || tx._id || "";
+    const query = key ? `?tx=${encodeURIComponent(key)}` : "";
+    router.push(`/details${query}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f]">
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4">
+      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
@@ -151,25 +182,52 @@ export default function SeeMorePage() {
           <span>Back</span>
         </button>
 
-        <div className="flex items-center space-x-2">
-          <button
-            type="button"
-            aria-label="Previous month"
-            onClick={goPrevMonth}
-            className="p-1 rounded hover:bg-[#d8c3ab]"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <h1 className="text-md font-semibold text-[#5F5F5F]">{currLabel}</h1>
-          <button
-            type="button"
-            aria-label="Next month"
-            onClick={goNextMonth}
-            className="p-1 rounded hover:bg-[#d8c3ab]"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
+        <button
+          aria-label="Open menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+          className="p-2 rounded hover:bg-[#e3cdb4]"
+        >
+          <Menu className="text-[#6b3e1f]" size={22} />
+        </button>
+
+        {menuOpen && (
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+
+        {menuOpen && (
+          <div className="absolute right-2 top-12 z-20 w-44 rounded-md border border-[#cbb89d] bg-white shadow-md">
+            <button
+              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              onClick={() => {
+                setMenuOpen(false);
+                router.push("/profile");
+              }}
+            >
+              Profile
+            </button>
+            <div className="h-px bg-[#ead7c2]" />
+            <button
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              onClick={handleLogout}
+            >
+              Log out
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-center space-x-2 mt-3">
+        <button type="button" onClick={goPrevMonth} aria-label="Previous month">
+          <ChevronLeft className="text-[#6b3e1f]" size={18} />
+        </button>
+        <h1 className="text-lg font-semibold text-[#5F5F5F]">{currLabel}</h1>
+        <button type="button" onClick={goNextMonth} aria-label="Next month">
+          <ChevronRight className="text-[#5F5F5F]" size={18} />
+        </button>
       </div>
 
       <div className="mt-6 w-full max-w-md px-4 pb-8">
@@ -189,13 +247,11 @@ export default function SeeMorePage() {
         ) : (
           <ul className="space-y-2 text-sm">
             {sortedTransactions.map((tx) => {
-              const paymentLabel =
-                tx.paymentMethod || tx.payment_method || tx.method;
-
               return (
                 <li
                   key={tx.sk || tx.id}
-                  className="grid grid-cols-[1.5fr_1fr_1fr] gap-3 items-center rounded px-2 py-2 bg-white shadow-sm"
+                  onClick={() => handleCardClick(tx)}
+                  className="grid grid-cols-[1.5fr_1fr_1fr] gap-3 items-center rounded px-2 py-2 bg-white shadow-sm cursor-pointer hover:shadow-md transition"
                 >
                   <div>
                     <p className="font-semibold">{tx.name}</p>
@@ -206,14 +262,15 @@ export default function SeeMorePage() {
                       >
                         {categoryNameMap.get(tx.category) || tx.category}
                       </span>
-                      <span className="px-2 py-0.5 rounded bg-[#ead7c2] text-[#6b3e1f]">
+                      <span
+                        className={`px-2 py-0.5 rounded ${
+                          tx.type === "Income"
+                            ? "bg-[#a8cbb1] text-[#2f5f2f]"
+                            : "bg-[#d9a3a3] text-[#5f2f2f]"
+                        }`}
+                      >
                         {tx.type}
                       </span>
-                      {paymentLabel && (
-                        <span className="px-2 py-0.5 rounded bg-[#f4e8da] text-[#6b3e1f]">
-                          {paymentLabel}
-                        </span>
-                      )}
                     </div>
                   </div>
 
