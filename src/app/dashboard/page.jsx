@@ -29,9 +29,10 @@ function formatCurrency(value) {
 // Utility: date -> label like "10 Nov"
 function formatDateLabel(iso) {
   const d = new Date(iso);
-  return d.toLocaleDateString("th-TH", {
+  return d.toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
+    year: "numeric",
   });
 }
 
