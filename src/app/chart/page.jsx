@@ -500,10 +500,10 @@ export default function ChartDetail() {
 
       {/* Category Breakdown */}
       <div className="mt-4 w-72 mb-4">
-        <div className="flex justify-between text-sm font-semibold border-b border-[#cbb89d] pb-1 mb-2">
+        <div className="grid grid-cols-[1.5fr_0.5fr_1fr] text-sm font-semibold border-b border-[#cbb89d] pb-1 mb-2">
           <span>Category</span>
-          <span>(%)</span>
-          <span>Baht</span>
+          <span className="text-center">(%)</span>
+          <span className="text-right">Baht</span>
         </div>
 
         {categoryRows.length === 0 ? (
@@ -515,7 +515,7 @@ export default function ChartDetail() {
             {categoryRows.map((row) => (
               <div
                 key={row.key}
-                className="flex justify-between items-center rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
+                className="grid grid-cols-[1.5fr_0.5fr_1fr] items-center gap-2 rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
                 onClick={() => goCategory(row.key)}
               >
                 <span
@@ -524,13 +524,13 @@ export default function ChartDetail() {
                 >
                   {row.name}
                 </span>
-                <span>
+                <span className="text-center font-semibold text-[#6b3e1f]">
                   {totalValue
                     ? Math.round((row.value / totalValue) * 100)
                     : 0}
                   %
                 </span>
-                <span>{formatCurrency(row.value)}</span>
+                <span className="text-right">{formatCurrency(row.value)}</span>
               </div>
             ))}
           </div>
