@@ -40,7 +40,7 @@ export default function SignupPage() {
       firstName: formData.firstName.trim(),
       lastName: formData.lastName.trim(),
       username: formData.username.trim(),
-      email: formData.email.trim(),
+      email: formData.email.trim().toLowerCase(),
       dob: formData.dob,
       password: formData.password,
       confirmPassword: formData.confirmPassword,

@@ -71,47 +71,52 @@ export async function POST(request: Request) {
 
     const sanitizedUsername = username.trim();
     const normalizedUsername = sanitizedUsername.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // Check if username already exists (case-insensitive)
-    const existingUsers = await dynamoDb.send(
-      new ScanCommand({
-        TableName: USERS_TABLE,
-        FilterExpression:
-          "#username = :username OR (#usernameLower = :usernameLower)",
-        ExpressionAttributeNames: {
-          "#username": "username",
-          "#usernameLower": "usernameLower",
-        },
-        ExpressionAttributeValues: {
-          ":username": sanitizedUsername,
-          ":usernameLower": normalizedUsername,
-        },
-        ProjectionExpression: "userId",
-      })
-    );
-
-    if ((existingUsers.Count ?? 0) > 0) {
-      return NextResponse.json(
-        { message: "Username is already taken." },
-        { status: 409 }
-      );
-    }
-
-    // Generate userId in format "user1", "user2", ...
+    // Scan existing users once to determine duplicates and next userId
     const scanAll = await dynamoDb.send(
       new ScanCommand({
         TableName: USERS_TABLE,
-        ProjectionExpression: "userId",
+        ProjectionExpression: "userId, username, email",
       })
     );
 
     let maxNumber = 0;
+    let usernameTaken = false;
+    let emailTaken = false;
+
     for (const item of scanAll.Items ?? []) {
       const id = typeof item.userId === "string" ? item.userId : "";
       const num = extractUserNumber(id);
       if (num > maxNumber) {
         maxNumber = num;
       }
+
+      const existingUsername =
+        typeof item.username === "string" ? item.username.toLowerCase() : "";
+      const existingEmail =
+        typeof item.email === "string" ? item.email.toLowerCase() : "";
+
+      if (existingUsername === normalizedUsername) {
+        usernameTaken = true;
+      }
+
+      if (existingEmail === normalizedEmail) {
+        emailTaken = true;
+      }
+    }
+
+    if (usernameTaken || emailTaken) {
+      let message = "";
+      if (usernameTaken && emailTaken) {
+        message = "This username and email are already in use.";
+      } else if (usernameTaken) {
+        message = "This username is already in use.";
+      } else {
+        message = "This email is already in use.";
+      }
+
+      return NextResponse.json({ message }, { status: 409 });
     }
 
     const nextNumber = maxNumber + 1;
@@ -123,14 +128,13 @@ export async function POST(request: Request) {
     const newUser = {
       userId: newUserId,
       createdAt: new Date().toISOString(), // e.g., 2025-11-17T00:00:00.000Z
+      dob,
+      email: normalizedEmail,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
-      email: email.trim().toLowerCase(),
-      dob,
-      username: sanitizedUsername,
-      usernameLower: normalizedUsername,
       passwordHash,
       status: "active", // match your existing data
+      username: sanitizedUsername,
     };
 
     // Insert into DynamoDB
@@ -146,7 +150,7 @@ export async function POST(request: Request) {
       { message: "User created successfully.", userId: newUser.userId },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Failed to create user", error);
 
     // TEMP: send back error.message for debugging (remove in production)
