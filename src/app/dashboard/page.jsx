@@ -57,9 +57,18 @@ export default function DashboardPage() {
   const router = useRouter();
   const params = useSearchParams();
 
-  // From login
-  const loginUsername =
-    params.get("user") || localStorage.getItem("username") || "";
+  // Safe username state
+const [loginUsername, setLoginUsername] = useState("");
+
+// Read from URL + localStorage on client ONLY
+useEffect(() => {
+  const urlUser = params.get("user");
+  const saved = typeof window !== "undefined"
+    ? localStorage.getItem("username")
+    : "";
+
+  setLoginUsername(urlUser || saved || "");
+}, [params]);
 
   // Dropdown state
   const [menuOpen, setMenuOpen] = useState(false);
@@ -178,6 +187,12 @@ export default function DashboardPage() {
   const goNextMonth = () =>
     setSelectedMonth((prev) => shiftMonth(prev, 1));
 
+  const handleLogout = () => {
+    localStorage.removeItem("username");
+    setMenuOpen(false);
+    router.replace("/login");
+  };
+
   const currLabel = monthLabel(
     selectedMonth.yyyy,
     selectedMonth.mm
@@ -233,7 +248,7 @@ export default function DashboardPage() {
             <div className="h-px bg-[#ead7c2]" />
             <button
               className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
-              onClick={() => router.push("/logout")}
+              onClick={handleLogout}
             >
               Log out
             </button>
