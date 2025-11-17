@@ -371,7 +371,11 @@ useEffect(() => {
 
         <div
           className="text-right text-[#8b4f21] text-xs mt-2 cursor-pointer hover:underline"
-          onClick={() => router.push("/seemore")}
+          onClick={() =>
+            router.push(
+              `/seemore?yyyy=${selectedMonth.yyyy}&mm=${selectedMonth.mm}`
+            )
+          }
         >
           see more &gt;&gt;
         </div>
