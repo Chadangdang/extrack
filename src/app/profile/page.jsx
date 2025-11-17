@@ -1,16 +1,44 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, User } from "lucide-react";
+import { getCurrentUser } from "@/lib/api";
 
 export default function ProfilePage() {
   const router = useRouter();
 
-  const user = {
-    username: "ChadangInwza1234",
-    fullName: "Chadang Phummarin",
-  };
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Load current user from API using X-User-Id header
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        // If no userId in localStorage, treat as not logged in
+        const storedUserId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("userId")
+            : null;
+
+        if (!storedUserId) {
+          router.replace("/login");
+          return;
+        }
+
+        const data = await getCurrentUser(); // calls /users/me
+        setUser(data);
+      } catch (err) {
+        console.error("Failed to load profile", err);
+        // If backend says user not found, just send them to login
+        router.replace("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+  }, [router]);
 
   const goLogin = () => {
     try {
@@ -19,6 +47,12 @@ export default function ProfilePage() {
     } catch {}
     router.push("/login");
   };
+
+  const username = user?.username || "";
+  const fullName =
+    user?.firstName && user?.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : "";
 
   return (
     <div className="min-h-screen bg-[#f9f3ec] text-[#6b3e1f] flex flex-col items-center">
@@ -38,15 +72,14 @@ export default function ProfilePage() {
           Profile
         </h1>
 
-        {/* Right spacer to keep layout balanced (since no hamburger) */}
+        {/* Right spacer to keep layout balanced */}
         <div className="w-[22px]" aria-hidden />
       </div>
-      {/* 👆 make sure this header div is CLOSED before content */}
 
       {/* Content */}
       <div className="w-full max-w-sm px-6 py-6 flex flex-col items-center">
         {/* User Icon */}
-        <div className="w-36 h-36 rounded-full bg-white shadow-sm flex items-center justify-center mb-6">
+        <div className="w-36 h-36 rounded-full bg:white bg-white shadow-sm flex items-center justify-center mb-6">
           <User size={72} className="opacity-60" />
         </div>
 
@@ -55,14 +88,14 @@ export default function ProfilePage() {
           <div>
             <div className="text-lg font-semibold mb-2">Username</div>
             <div className="w-full rounded-lg bg-[#eae0d1] px-4 py-3">
-              {user.username}
+              {loading ? "Loading..." : username || "-"}
             </div>
           </div>
 
           <div>
             <div className="text-lg font-semibold mb-2">Full Name</div>
             <div className="w-full rounded-lg bg-[#eae0d1] px-4 py-3">
-              {user.fullName}
+              {loading ? "Loading..." : fullName || "-"}
             </div>
           </div>
         </div>
