@@ -1,103 +1,240 @@
+"use client";
+
+import { useMemo, useState } from "react";
 import Link from "next/link";
 
+const initialState = {
+  firstName: "",
+  lastName: "",
+  dob: "",
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
+
 export default function SignupPage() {
+  const [formData, setFormData] = useState(initialState);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const today = useMemo(() => {
+    return new Date().toISOString().split("T")[0];
+  }, []);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    const trimmed = {
+      firstName: formData.firstName.trim(),
+      lastName: formData.lastName.trim(),
+      username: formData.username.trim(),
+      email: formData.email.trim(),
+      dob: formData.dob,
+      password: formData.password,
+      confirmPassword: formData.confirmPassword,
+    };
+
+    if (trimmed.password !== trimmed.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    if (!trimmed.dob) {
+      setError("Date of birth is required.");
+      return;
+    }
+
+    const dobDate = new Date(trimmed.dob);
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    if (Number.isNaN(dobDate.getTime()) || dobDate > now) {
+      setError("DOB must be today or earlier.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(trimmed),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Failed to create account.");
+      }
+
+      setSuccess("Account created successfully! You can now log in.");
+      setFormData(initialState);
+    } catch (err) {
+      setError(err.message || "Failed to create account.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center">
-      {/* Top beige header strip */}
       <div className="w-full h-12 bg-[#ead7c2] shadow-sm"></div>
 
-      {/* Main signup box */}
       <div className="w-full flex-1 flex items-start justify-center pt-6 pb-12 px-4">
         <div className="w-full max-w-sm bg-[#f9f3ec] rounded-2xl p-8 shadow-md border border-transparent text-center">
           <h1 className="text-lg font-semibold text-[#8b4f21] mb-8">
             –CREATE AN ACCOUNT–
           </h1>
 
-          <form className="space-y-5 text-left">
-            {/* Name */}
+          <form className="space-y-5 text-left" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="firstName">
                 NAME
               </label>
               <input
+                id="firstName"
+                name="firstName"
                 type="text"
+                value={formData.firstName}
+                onChange={handleChange}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="First name"
+                autoComplete="given-name"
                 required
               />
             </div>
 
-            {/* Surname */}
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="lastName">
                 SURNAME
               </label>
               <input
+                id="lastName"
+                name="lastName"
                 type="text"
+                value={formData.lastName}
+                onChange={handleChange}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="Last name"
+                autoComplete="family-name"
                 required
               />
             </div>
 
-            {/* DOB */}
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="dob">
                 DOB
               </label>
               <input
+                id="dob"
+                name="dob"
                 type="date"
+                value={formData.dob}
+                onChange={handleChange}
+                max={today}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none"
                 required
               />
             </div>
 
-            {/* Username */}
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="email">
+                EMAIL
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="name@example.com"
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="username">
                 USERNAME
               </label>
               <input
+                id="username"
+                name="username"
                 type="text"
+                value={formData.username}
+                onChange={handleChange}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="Username"
+                autoComplete="username"
                 required
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="password">
                 PASSWORD
               </label>
               <input
+                id="password"
+                name="password"
                 type="password"
+                value={formData.password}
+                onChange={handleChange}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="Enter your password"
+                autoComplete="new-password"
                 required
               />
             </div>
 
-            {/* Confirm Password */}
             <div>
-              <label className="block text-[#8b4f21] text-sm font-semibold mb-1">
+              <label className="block text-[#8b4f21] text-sm font-semibold mb-1" htmlFor="confirmPassword">
                 CONFIRM PASSWORD
               </label>
               <input
+                id="confirmPassword"
+                name="confirmPassword"
                 type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 className="w-full py-2 px-3 rounded-md bg-[#e7d3bd] text-[#6b3e1f] outline-none placeholder-[#a26b3c]"
+                placeholder="Re-enter your password"
+                autoComplete="new-password"
                 required
               />
             </div>
 
-            {/* Signup button */}
+            {(error || success) && (
+              <p className={`text-sm ${error ? "text-red-600" : "text-green-700"}`}>
+                {error || success}
+              </p>
+            )}
+
             <div className="flex justify-center pt-3">
               <button
                 type="submit"
-                className="bg-[#d5853c] text-white font-semibold py-2 px-6 rounded-md hover:bg-[#b96f2f] transition"
+                disabled={isSubmitting}
+                className="bg-[#d5853c] text-white font-semibold py-2 px-6 rounded-md hover:bg-[#b96f2f] transition disabled:opacity-60"
               >
-                SIGNUP
+                {isSubmitting ? "CREATING..." : "SIGNUP"}
               </button>
             </div>
           </form>
 
-          {/* Back to Login link */}
           <p className="text-sm text-[#6b3e1f] mt-6">
             Already have an account?{" "}
             <Link href="/login" className="text-[#8b4f21] font-semibold hover:underline">
