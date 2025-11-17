@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   useEffect,
@@ -92,6 +92,7 @@ function formatInputDate(date) {
 
 export default function ChartDetail() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -103,10 +104,27 @@ export default function ChartDetail() {
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
-    return {
+    const fallback = {
       yyyy: String(now.getFullYear()),
       mm: String(now.getMonth() + 1).padStart(2, "0"),
     };
+
+    const yearParam = searchParams?.get("yyyy");
+    const monthParam = searchParams?.get("mm");
+
+    if (!yearParam || !monthParam) return fallback;
+
+    const normalizedMonth = String(monthParam).padStart(2, "0");
+    const monthValue = Number(normalizedMonth);
+
+    const yearValid = /^\d{4}$/.test(yearParam);
+    const monthValid = monthValue >= 1 && monthValue <= 12;
+
+    if (yearValid && monthValid) {
+      return { yyyy: yearParam, mm: normalizedMonth };
+    }
+
+    return fallback;
   });
 
   const [categories, setCategories] = useState([]);

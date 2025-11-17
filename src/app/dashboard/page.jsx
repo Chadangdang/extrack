@@ -259,7 +259,11 @@ useEffect(() => {
 
       {/* Chart */}
       <div
-        onClick={() => router.push("/chart")}
+        onClick={() =>
+          router.push(
+            `/chart?yyyy=${selectedMonth.yyyy}&mm=${selectedMonth.mm}`
+          )
+        }
         className="w-full max-w-xs mt-6 cursor-pointer active:scale-95 transition-transform"
       >
         {pieData.length > 0 ? (
