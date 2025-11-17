@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const initialState = {
   firstName: "",
@@ -14,6 +15,7 @@ const initialState = {
 };
 
 export default function SignupPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState(initialState);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -80,8 +82,13 @@ export default function SignupPage() {
         throw new Error(payload.message || "Failed to create account.");
       }
 
-      setSuccess("Account created successfully! You can now log in.");
+      setSuccess("Account created successfully! Redirecting...");
+
       setFormData(initialState);
+
+      setTimeout(() => {
+        router.push("/login");
+      }, 800);
     } catch (err) {
       setError(err.message || "Failed to create account.");
     } finally {
