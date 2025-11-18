@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, Menu, Camera, X } from "lucide-react";
 
 import {
@@ -41,7 +41,7 @@ function deriveReceiptName(tx) {
   );
 }
 
-export default function EditTransactionPage() {
+function EditTransactionPage() {
   const router = useRouter();
   const params = useSearchParams();
   const txParam = params?.get("tx") || "";
@@ -381,9 +381,9 @@ export default function EditTransactionPage() {
   }, [paymentMethods, paymentMethod]);
 
   return (
-    <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f] pb-10">
+    <div className="flex flex-col items-center bg-[#f9f3ec] pb-10 min-h-screen text-[#6b3e1f]">
       {/* Header */}
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+      <div className="relative flex justify-between items-center bg-[#ead7c2] px-4 w-full h-12">
         <button
           type="button"
           className="flex items-center space-x-2"
@@ -397,25 +397,25 @@ export default function EditTransactionPage() {
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 rounded hover:bg-[#e3cdb4] active:scale-95 transition"
+          className="hover:bg-[#e3cdb4] p-2 rounded transition active:scale-95"
         >
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
 
         {menuOpen && (
           <div
-            className="fixed inset-0 z-10"
+            className="z-10 fixed inset-0"
             onClick={() => setMenuOpen(false)}
           />
         )}
 
         {menuOpen && (
           <div
-            className="absolute right-2 top-12 z-20 w-40 rounded-md border border-[#cbb89d] bg-white shadow-md overflow-hidden"
+            className="top-12 right-2 z-20 absolute bg-white shadow-md border border-[#cbb89d] rounded-md w-40 overflow-hidden"
             role="menu"
           >
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              className="hover:bg-[#f6efe6] px-3 py-2 w-full text-left text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/profile");
@@ -423,9 +423,9 @@ export default function EditTransactionPage() {
             >
               Profile
             </button>
-            <div className="h-px bg-[#ead7c2]" />
+            <div className="bg-[#ead7c2] h-px" />
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              className="hover:bg-[#fce9e9] px-3 py-2 w-full text-left text-red-600 text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 goLogin();
@@ -437,7 +437,7 @@ export default function EditTransactionPage() {
         )}
       </div>
 
-      <h1 className="text-lg font-semibold mt-6">Edit Transaction</h1>
+      <h1 className="mt-6 font-semibold text-lg">Edit Transaction</h1>
 
       {(error || success) && (
         <div className="mt-3 w-72 text-sm">
@@ -447,9 +447,9 @@ export default function EditTransactionPage() {
       )}
 
       {loadingTransaction ? (
-        <p className="mt-10 text-sm text-[#8b4f21]">Loading transaction...</p>
+        <p className="mt-10 text-[#8b4f21] text-sm">Loading transaction...</p>
       ) : !transaction ? (
-        <div className="mt-10 text-center text-sm space-y-3">
+        <div className="space-y-3 mt-10 text-center text-sm">
           <p>No transaction selected. Please go back and pick one.</p>
           <button
             type="button"
@@ -461,7 +461,7 @@ export default function EditTransactionPage() {
         </div>
       ) : (
         <form
-          className="mt-4 w-72 space-y-3 text-sm mb-8"
+          className="space-y-3 mt-4 mb-8 w-72 text-sm"
           onSubmit={handleSubmit}
         >
           {/* Name */}
@@ -471,7 +471,7 @@ export default function EditTransactionPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
+              className="bg-[#f4e8d9] mt-1 px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
               placeholder="e.g. Water, Noodles"
             />
           </div>
@@ -485,7 +485,7 @@ export default function EditTransactionPage() {
                 inputMode="numeric"
                 value={amountInt}
                 onChange={handleAmountIntChange}
-                className="flex-1 border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
+                className="flex-1 bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm focus:outline-none"
                 placeholder="0"
               />
               <span className="font-semibold">.</span>
@@ -495,7 +495,7 @@ export default function EditTransactionPage() {
                 value={amountCents}
                 onChange={handleAmountCentsChange}
                 maxLength={2}
-                className="w-14 border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none text-center"
+                className="bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm w-14 text-center focus:outline-none"
                 placeholder="00"
               />
               <span>Baht</span>
@@ -540,7 +540,7 @@ export default function EditTransactionPage() {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={loadingLookups}
-              className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
+              className="bg-[#f4e8d9] mt-1 px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
             >
               {loadingLookups && <option>Loading...</option>}
               {!loadingLookups && (
@@ -564,7 +564,7 @@ export default function EditTransactionPage() {
               value={date}
               max={today}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
+              className="bg-[#f4e8d9] mt-1 px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
             />
           </div>
 
@@ -575,7 +575,7 @@ export default function EditTransactionPage() {
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
               disabled={loadingLookups}
-              className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none"
+              className="bg-[#f4e8d9] mt-1 px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
             >
               {loadingLookups && <option>Loading...</option>}
               {!loadingLookups && (
@@ -595,25 +595,25 @@ export default function EditTransactionPage() {
           <div>
             <div className="flex justify-between items-center">
               <label className="font-semibold">Note</label>
-              <span className="text-xs text-[#8b4f21]">{note.length}/100</span>
+              <span className="text-[#8b4f21] text-xs">{note.length}/100</span>
             </div>
             <textarea
               rows={2}
               value={note}
               maxLength={100}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 mt-1 focus:outline-none resize-none"
+              className="bg-[#f4e8d9] mt-1 px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none resize-none"
               placeholder="Optional note"
             />
           </div>
 
           {/* Upload Receipt */}
           <div className="flex flex-col items-center mt-3">
-            <label className="font-semibold mb-1">Upload receipt</label>
+            <label className="mb-1 font-semibold">Upload receipt</label>
             <button
               type="button"
               onClick={triggerFilePicker}
-              className="bg-[#ead7c2] p-3 rounded-full shadow-md hover:bg-[#d6c2a8] active:scale-95 transition"
+              className="bg-[#ead7c2] hover:bg-[#d6c2a8] shadow-md p-3 rounded-full transition active:scale-95"
             >
               <Camera className="text-[#6b3e1f]" size={28} />
             </button>
@@ -638,16 +638,16 @@ export default function EditTransactionPage() {
                 {receiptName}
               </button>
             ) : (
-              <p className="mt-2 text-xs text-[#8b4f21]">No receipt attached</p>
+              <p className="mt-2 text-[#8b4f21] text-xs">No receipt attached</p>
             )}
           </div>
 
           {/* Save */}
-          <div className="mt-6 flex justify-center">
+          <div className="flex justify-center mt-6">
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-[#d5853c] text-white font-semibold rounded-md px-6 py-2 shadow-md hover:bg-[#b96f2f] disabled:opacity-60"
+              className="bg-[#d5853c] hover:bg-[#b96f2f] disabled:opacity-60 shadow-md px-6 py-2 rounded-md font-semibold text-white"
             >
               {isSubmitting ? "Saving..." : "Save Transaction"}
             </button>
@@ -656,12 +656,12 @@ export default function EditTransactionPage() {
       )}
 
       {imageModalOpen && canPreviewReceipt && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-4">
-          <div className="relative bg-white p-4 rounded-lg max-w-2xl w-full">
+        <div className="z-30 fixed inset-0 flex justify-center items-center bg-black/60 px-4">
+          <div className="relative bg-white p-4 rounded-lg w-full max-w-2xl">
             <button
               type="button"
               aria-label="Close image"
-              className="absolute top-2 right-2 text-[#6b3e1f] hover:text-black"
+              className="top-2 right-2 absolute text-[#6b3e1f] hover:text-black"
               onClick={() => setImageModalOpen(false)}
             >
               <X size={20} />
@@ -678,4 +678,12 @@ export default function EditTransactionPage() {
       )}
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <EditTransactionPage />
+    </Suspense>
+  )
 }
