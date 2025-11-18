@@ -17,11 +17,33 @@ export default function AddCategory() {
     { name: 'Grey', value: '#d4a08a' }
   ];
 
-  const handleSave = () => {
-    if (categoryName.trim() && selectedColor) {
-      router.push('/admin/detail');
-    } else {
+  const handleSave = async () => {
+    if (!categoryName.trim() || !selectedColor) {
       alert('Please enter a category name and select a color');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: categoryName.trim(),
+          name: categoryName.trim(),
+          color: selectedColor
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to save category");
+        return;
+      }
+
+      router.push('/admin/dashboard');
+    } catch (err) {
+      console.error("Error creating category:", err);
+      alert("Something went wrong while saving the category.");
     }
   };
 
