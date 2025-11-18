@@ -71,6 +71,10 @@ export function getAllUsers() {
   return request("GET", "/users");
 }
 
+export function createUser(data) {
+  return request("POST", "/users", {}, data);
+}
+
 /* ============================
   ADMINS
 ============================ */

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createUser } from "@/lib/api";
 
 const initialState = {
   firstName: "",
@@ -68,22 +69,18 @@ export default function SignupPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(trimmed),
+      // Call your API Gateway via src/lib/api.js
+      await createUser({
+        firstName: trimmed.firstName,
+        lastName: trimmed.lastName,
+        username: trimmed.username,
+        email: trimmed.email,
+        password: trimmed.password,
+        dob: trimmed.dob,
+        // confirmPassword is only for frontend validation, no need to send
       });
 
-      const payload = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(payload.message || "Failed to create account.");
-      }
-
       setSuccess("Account created successfully! Redirecting...");
-
       setFormData(initialState);
 
       setTimeout(() => {
