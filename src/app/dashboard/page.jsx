@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Menu, ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, Suspense } from "react";
 
 import {
   getLookups,
@@ -54,7 +54,7 @@ function shiftMonth({ yyyy, mm }, delta) {
   };
 }
 
-export default function DashboardPage() {
+function DashboardPage() {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -200,16 +200,16 @@ useEffect(() => {
   );
 
   return (
-    <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f]">
+    <div className="flex flex-col items-center bg-[#f9f3ec] min-h-screen text-[#6b3e1f]">
       {/* Header */}
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+      <div className="relative flex justify-between items-center bg-[#ead7c2] px-4 w-full h-12">
         <div className="flex items-center space-x-2">
           <ChevronLeft
             className="text-[#6b3e1f] cursor-pointer"
             size={20}
             onClick={goPrevMonth}
           />
-          <h1 className="text-md font-semibold">
+          <h1 className="font-semibold text-md">
             {currLabel}
           </h1>
           <ChevronRight
@@ -224,7 +224,7 @@ useEffect(() => {
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 rounded hover:bg-[#e3cdb4]"
+          className="hover:bg-[#e3cdb4] p-2 rounded"
         >
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
@@ -232,23 +232,23 @@ useEffect(() => {
         {/* Click-away */}
         {menuOpen && (
           <div
-            className="fixed inset-0 z-10"
+            className="z-10 fixed inset-0"
             onClick={() => setMenuOpen(false)}
           />
         )}
 
         {/* Dropdown */}
         {menuOpen && (
-          <div className="absolute right-2 top-12 z-20 w-44 rounded-md border border-[#cbb89d] bg-white shadow-md">
+          <div className="top-12 right-2 z-20 absolute bg-white shadow-md border border-[#cbb89d] rounded-md w-44">
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              className="hover:bg-[#f6efe6] px-3 py-2 w-full text-left text-sm"
               onClick={() => router.push("/profile")}
             >
               Profile
             </button>
-            <div className="h-px bg-[#ead7c2]" />
+            <div className="bg-[#ead7c2] h-px" />
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              className="hover:bg-[#fce9e9] px-3 py-2 w-full text-left text-red-600 text-sm"
               onClick={handleLogout}
             >
               Log out
@@ -264,7 +264,7 @@ useEffect(() => {
             `/chart?yyyy=${selectedMonth.yyyy}&mm=${selectedMonth.mm}`
           )
         }
-        className="w-full max-w-xs mt-6 cursor-pointer active:scale-95 transition-transform"
+        className="mt-6 w-full max-w-xs transition-transform cursor-pointer active:scale-95"
       >
         {pieData.length > 0 ? (
           <ResponsiveContainer width="100%" height={180}>
@@ -284,13 +284,13 @@ useEffect(() => {
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[180px] flex items-center justify-center border border-dashed border-[#cbb89d] rounded">
+          <div className="flex justify-center items-center border border-[#cbb89d] border-dashed rounded h-[180px]">
             <p>No data for this month</p>
           </div>
         )}
 
         {/* Percent tags */}
-        <div className="flex justify-center flex-wrap gap-3 text-xs mt-2">
+        <div className="flex flex-wrap justify-center gap-3 mt-2 text-xs">
           {pieData.map((d) => (
             <span
               key={d.name}
@@ -308,7 +308,7 @@ useEffect(() => {
       </div>
 
       {/* Totals */}
-      <div className="mt-6 w-64 border border-gray-400 text-center rounded-sm overflow-hidden">
+      <div className="mt-6 border border-gray-400 rounded-sm w-64 text-center overflow-hidden">
         <div className="flex">
           <div className="flex-1 bg-[#cce5cc] p-2 font-semibold text-[#2f5f2f]">
             Income
@@ -327,8 +327,8 @@ useEffect(() => {
       </div>
 
       {/* Recent */}
-      <div className="mt-8 w-72 border border-[#cbb89d] bg-[#f9f3ec] rounded-md p-4 text-left">
-        <h2 className="text-[#8b4f21] font-semibold mb-3">
+      <div className="bg-[#f9f3ec] mt-8 p-4 border border-[#cbb89d] rounded-md w-72 text-left">
+        <h2 className="mb-3 font-semibold text-[#8b4f21]">
           Recently Added
         </h2>
 
@@ -345,13 +345,13 @@ useEffect(() => {
                   <span className="block font-semibold">
                     {tx.name}
                   </span>
-                  <span className="text-xs text-[#6b3e1f]/70">
+                  <span className="text-[#6b3e1f]/70 text-xs">
                     {formatDateLabel(tx.date)}
                   </span>
                 </div>
 
                 <span
-                  className="text-xs px-2 py-0.5 rounded font-semibold"
+                  className="px-2 py-0.5 rounded font-semibold text-xs"
                   style={{
                     background:
                       colorMap.get(tx.category) || "#ccc",
@@ -370,7 +370,7 @@ useEffect(() => {
         )}
 
         <div
-          className="text-right text-[#8b4f21] text-xs mt-2 cursor-pointer hover:underline"
+          className="text-right mt-2 text-[#8b4f21] text-xs hover:underline cursor-pointer"
           onClick={() =>
             router.push(
               `/seemore?yyyy=${selectedMonth.yyyy}&mm=${selectedMonth.mm}`
@@ -382,14 +382,22 @@ useEffect(() => {
       </div>
 
       {/* Add Button */}
-      <div className="mt-auto w-full bg-[#ead7c2] py-3 flex justify-center">
+      <div className="flex justify-center bg-[#ead7c2] mt-auto py-3 w-full">
         <button
           onClick={() => router.push("/transaction")}
-          className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
+          className="bg-[#d5853c] hover:bg-[#b96f2f] shadow-md p-3 rounded-full text-white"
         >
           <Plus size={22} />
         </button>
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardPage />
+    </Suspense>
+  )
 }

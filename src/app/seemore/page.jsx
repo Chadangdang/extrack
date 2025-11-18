@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
 
@@ -65,7 +65,7 @@ function parseMonthParams(searchParams) {
   return fallback;
 }
 
-export default function SeeMorePage() {
+function SeeMorePage() {
   const router = useRouter();
   const params = useSearchParams();
   const searchString = params?.toString();
@@ -171,12 +171,12 @@ export default function SeeMorePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f]">
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+    <div className="flex flex-col items-center bg-[#f9f3ec] min-h-screen text-[#6b3e1f]">
+      <div className="relative flex justify-between items-center bg-[#ead7c2] px-4 w-full h-12">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="flex items-center space-x-2 text-sm font-semibold text-[#6b3e1f] hover:underline"
+          className="flex items-center space-x-2 font-semibold text-[#6b3e1f] text-sm hover:underline"
         >
           <ChevronLeft size={20} />
           <span>Back</span>
@@ -186,22 +186,22 @@ export default function SeeMorePage() {
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 rounded hover:bg-[#e3cdb4]"
+          className="hover:bg-[#e3cdb4] p-2 rounded"
         >
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
 
         {menuOpen && (
           <div
-            className="fixed inset-0 z-10"
+            className="z-10 fixed inset-0"
             onClick={() => setMenuOpen(false)}
           />
         )}
 
         {menuOpen && (
-          <div className="absolute right-2 top-12 z-20 w-44 rounded-md border border-[#cbb89d] bg-white shadow-md">
+          <div className="top-12 right-2 z-20 absolute bg-white shadow-md border border-[#cbb89d] rounded-md w-44">
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              className="hover:bg-[#f6efe6] px-3 py-2 w-full text-left text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/profile");
@@ -209,9 +209,9 @@ export default function SeeMorePage() {
             >
               Profile
             </button>
-            <div className="h-px bg-[#ead7c2]" />
+            <div className="bg-[#ead7c2] h-px" />
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              className="hover:bg-[#fce9e9] px-3 py-2 w-full text-left text-red-600 text-sm"
               onClick={handleLogout}
             >
               Log out
@@ -220,28 +220,28 @@ export default function SeeMorePage() {
         )}
       </div>
 
-      <div className="flex items-center justify-center space-x-2 mt-3">
+      <div className="flex justify-center items-center space-x-2 mt-3">
         <button type="button" onClick={goPrevMonth} aria-label="Previous month">
           <ChevronLeft className="text-[#6b3e1f]" size={18} />
         </button>
-        <h1 className="text-lg font-semibold text-[#5F5F5F]">{currLabel}</h1>
+        <h1 className="font-semibold text-[#5F5F5F] text-lg">{currLabel}</h1>
         <button type="button" onClick={goNextMonth} aria-label="Next month">
           <ChevronRight className="text-[#5F5F5F]" size={18} />
         </button>
       </div>
 
-      <div className="mt-6 w-full max-w-md px-4 pb-8">
-        <h2 className="text-lg font-semibold mb-3">All Transactions</h2>
-        <div className="grid grid-cols-[1.5fr_1fr_1fr] text-xs font-semibold text-[#8b4f21] border-b border-[#cbb89d] pb-2 mb-3 px-2">
+      <div className="mt-6 px-4 pb-8 w-full max-w-md">
+        <h2 className="mb-3 font-semibold text-lg">All Transactions</h2>
+        <div className="grid grid-cols-[1.5fr_1fr_1fr] mb-3 px-2 pb-2 border-[#cbb89d] border-b font-semibold text-[#8b4f21] text-xs">
           <span>Details</span>
           <span className="text-center">Date</span>
           <span className="text-right">Amount</span>
         </div>
 
         {loading ? (
-          <p className="text-center text-sm text-[#8b4f21]">Loading...</p>
+          <p className="text-[#8b4f21] text-center text-sm">Loading...</p>
         ) : sortedTransactions.length === 0 ? (
-          <p className="text-center text-sm text-[#8b4f21]">
+          <p className="text-[#8b4f21] text-center text-sm">
             No transactions for this month.
           </p>
         ) : (
@@ -251,11 +251,11 @@ export default function SeeMorePage() {
                 <li
                   key={tx.sk || tx.id}
                   onClick={() => handleCardClick(tx)}
-                  className="grid grid-cols-[1.5fr_1fr_1fr] gap-3 items-center rounded px-2 py-2 bg-white shadow-sm cursor-pointer hover:shadow-md transition"
+                  className="items-center gap-3 grid grid-cols-[1.5fr_1fr_1fr] bg-white shadow-sm hover:shadow-md px-2 py-2 rounded transition cursor-pointer"
                 >
                   <div>
                     <p className="font-semibold">{tx.name}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-[#6b3e1f]/70 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 text-[#6b3e1f]/70 text-[11px]">
                       <span
                         className="px-2 py-0.5 rounded text-white"
                         style={{ backgroundColor: colorMap.get(tx.category) || "#b08d6d" }}
@@ -294,4 +294,12 @@ export default function SeeMorePage() {
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SeeMorePage />
+    </Suspense>
+  )
 }

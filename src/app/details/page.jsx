@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, Menu, Trash2, Pencil, X } from "lucide-react";
 
 import { deleteTransaction, getReceiptViewUrl } from "@/lib/api";
@@ -24,7 +24,7 @@ function formatDateLabel(iso) {
   });
 }
 
-export default function TransactionDetailPage() {
+function TransactionDetailPage() {
   const router = useRouter();
   const params = useSearchParams();
   const txParam = params?.get("tx") || "";
@@ -165,9 +165,9 @@ export default function TransactionDetailPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f9f3ec] text-[#6b3e1f] flex flex-col items-center pb-24">
+    <div className="flex flex-col items-center bg-[#f9f3ec] pb-24 min-h-screen text-[#6b3e1f]">
       {/* Header */}
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+      <div className="relative flex justify-between items-center bg-[#ead7c2] px-4 w-full h-12">
         {/* Back */}
         <button
           onClick={() => router.push("/seemore")}
@@ -182,7 +182,7 @@ export default function TransactionDetailPage() {
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 rounded hover:bg-[#e3cdb4] active:scale-95 transition"
+          className="hover:bg-[#e3cdb4] p-2 rounded transition active:scale-95"
         >
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
@@ -190,7 +190,7 @@ export default function TransactionDetailPage() {
         {/* Overlay */}
         {menuOpen && (
           <div
-            className="fixed inset-0 z-10"
+            className="z-10 fixed inset-0"
             onClick={() => setMenuOpen(false)}
           />
         )}
@@ -198,11 +198,11 @@ export default function TransactionDetailPage() {
         {/* Dropdown */}
         {menuOpen && (
           <div
-            className="absolute right-2 top-12 z-20 w-40 rounded-md border border-[#cbb89d] bg-white shadow-md overflow-hidden"
+            className="top-12 right-2 z-20 absolute bg-white shadow-md border border-[#cbb89d] rounded-md w-40 overflow-hidden"
             role="menu"
           >
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              className="hover:bg-[#f6efe6] px-3 py-2 w-full text-left text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/profile");
@@ -210,9 +210,9 @@ export default function TransactionDetailPage() {
             >
               Profile
             </button>
-            <div className="h-px bg-[#ead7c2]" />
+            <div className="bg-[#ead7c2] h-px" />
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              className="hover:bg-[#fce9e9] px-3 py-2 w-full text-left text-red-600 text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 goLogin();
@@ -225,15 +225,15 @@ export default function TransactionDetailPage() {
       </div>
 
       {/* Content */}
-      <div className="w-full max-w-sm px-8 pt-6">
+      <div className="px-8 pt-6 w-full max-w-sm">
         {/* Receipt placeholder + trash */}
-        <div className="mt-6 relative flex justify-center">
-          <div className="w-60 h-60 rounded-md border border-[#ead7c2] bg-[#e8ddcf] overflow-hidden flex items-center justify-center">
+        <div className="relative flex justify-center mt-6">
+          <div className="flex justify-center items-center bg-[#e8ddcf] border border-[#ead7c2] rounded-md w-60 h-60 overflow-hidden">
             {receiptUrl ? (
               <button
                 type="button"
                 onClick={() => setImageModalOpen(true)}
-                className="w-full h-full flex items-center justify-center"
+                className="flex justify-center items-center w-full h-full"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -250,7 +250,7 @@ export default function TransactionDetailPage() {
 
           {/* SMALLER TRASH ICON + POSITION FIX */}
           <button
-            className="absolute -top-3 -right-4 text-red-500 hover:opacity-80 active:scale-95 transition"
+            className="-top-3 -right-4 absolute hover:opacity-80 text-red-500 transition active:scale-95"
             type="button"
             onClick={() => setConfirmDelete(true)}
           >
@@ -259,13 +259,13 @@ export default function TransactionDetailPage() {
         </div>
 
         {/* Info rows */}
-        <div className="mt-10 space-y-5 text-base">
+        <div className="space-y-5 mt-10 text-base">
           {transaction ? (
             detailRows.map((row) => (
               <div key={row.label} className="flex justify-between items-center">
                 <span className="font-semibold">{row.label}</span>
                 {row.badge ? (
-                  <span className="bg-[#c5a3e8] text-[#6b3e1f] px-3 py-0.5 rounded">
+                  <span className="bg-[#c5a3e8] px-3 py-0.5 rounded text-[#6b3e1f]">
                     {row.value}
                   </span>
                 ) : row.type ? (
@@ -278,7 +278,7 @@ export default function TransactionDetailPage() {
               </div>
             ))
           ) : (
-            <p className="text-center text-sm text-[#8b4f21]">
+            <p className="text-[#8b4f21] text-center text-sm">
               No transaction selected. Please go back and pick one.
             </p>
           )}
@@ -289,24 +289,24 @@ export default function TransactionDetailPage() {
       <button
         type="button"
         onClick={() => router.push("/edittrans")}
-        className="fixed bottom-10 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-[#8b572a] text-white flex items-center justify-center shadow-md hover:bg-[#74481f] active:scale-95 transition"
+        className="bottom-10 left-1/2 fixed flex justify-center items-center bg-[#8b572a] hover:bg-[#74481f] shadow-md rounded-full w-16 h-16 text-white transition -translate-x-1/2 active:scale-95"
       >
         <Pencil size={22} />
       </button>
 
       {confirmDelete && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-sm rounded-lg bg-white p-5 text-center space-y-4">
-            <p className="text-lg font-semibold text-[#6b3e1f]">
+        <div className="z-30 fixed inset-0 flex justify-center items-center bg-black/40 px-6">
+          <div className="space-y-4 bg-white p-5 rounded-lg w-full max-w-sm text-center">
+            <p className="font-semibold text-[#6b3e1f] text-lg">
               Do you wanna delete this transaction?
             </p>
             {deleteError && (
-              <p className="text-sm text-red-600">{deleteError}</p>
+              <p className="text-red-600 text-sm">{deleteError}</p>
             )}
             <div className="flex justify-end space-x-3">
               <button
                 type="button"
-                className="px-4 py-2 rounded border border-[#cbb89d] text-[#6b3e1f] hover:bg-[#f9f3ec]"
+                className="hover:bg-[#f9f3ec] px-4 py-2 border border-[#cbb89d] rounded text-[#6b3e1f]"
                 onClick={() => {
                   setDeleteError("");
                   setConfirmDelete(false);
@@ -317,7 +317,7 @@ export default function TransactionDetailPage() {
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-70"
+                className="bg-red-500 hover:bg-red-600 disabled:opacity-70 px-4 py-2 rounded font-semibold text-white"
                 onClick={handleDeleteTransaction}
                 disabled={deleting}
               >
@@ -329,12 +329,12 @@ export default function TransactionDetailPage() {
       )}
 
       {imageModalOpen && receiptUrl && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 px-4">
-          <div className="relative bg-white p-4 rounded-lg max-w-2xl w-full">
+        <div className="z-30 fixed inset-0 flex justify-center items-center bg-black/60 px-4">
+          <div className="relative bg-white p-4 rounded-lg w-full max-w-2xl">
             <button
               type="button"
               aria-label="Close image"
-              className="absolute top-2 right-2 text-[#6b3e1f] hover:text-black"
+              className="top-2 right-2 absolute text-[#6b3e1f] hover:text-black"
               onClick={() => setImageModalOpen(false)}
             >
               <X size={20} />
@@ -343,11 +343,19 @@ export default function TransactionDetailPage() {
             <img
               src={receiptUrl}
               alt="Transaction receipt preview"
-              className="w-full h-auto max-h-[75vh] object-contain rounded-md"
+              className="rounded-md w-full h-auto max-h-[75vh] object-contain"
             />
           </div>
         </div>
       )}
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TransactionDetailPage />
+    </Suspense>
+  )
 }

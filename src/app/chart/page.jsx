@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -90,7 +91,7 @@ function formatInputDate(date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function ChartDetail() {
+function ChartDetail() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -316,13 +317,13 @@ export default function ChartDetail() {
   const endInputMin = startDate || monthStartInput;
 
   return (
-    <div className="min-h-screen bg-[#f9f3ec] flex flex-col items-center text-[#6b3e1f] pb-24 overflow-y-auto">
+    <div className="flex flex-col items-center bg-[#f9f3ec] pb-24 min-h-screen text-[#6b3e1f] overflow-y-auto">
       {/* Header */}
-      <div className="w-full h-12 bg-[#ead7c2] flex items-center justify-between px-4 relative">
+      <div className="relative flex justify-between items-center bg-[#ead7c2] px-4 w-full h-12">
         <button
           type="button"
           onClick={() => router.push("/dashboard")}
-          className="flex items-center space-x-2 text-[#6b3e1f] font-semibold"
+          className="flex items-center space-x-2 font-semibold text-[#6b3e1f]"
         >
           <ChevronLeft size={20} />
           <span>Back</span>
@@ -332,22 +333,22 @@ export default function ChartDetail() {
           aria-label="Open menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
-          className="p-2 rounded hover:bg-[#e3cdb4]"
+          className="hover:bg-[#e3cdb4] p-2 rounded"
         >
           <Menu className="text-[#6b3e1f]" size={22} />
         </button>
 
         {menuOpen && (
           <div
-            className="fixed inset-0 z-10"
+            className="z-10 fixed inset-0"
             onClick={() => setMenuOpen(false)}
           />
         )}
 
         {menuOpen && (
-          <div className="absolute right-2 top-12 z-20 w-44 rounded-md border border-[#cbb89d] bg-white shadow-md">
+          <div className="top-12 right-2 z-20 absolute bg-white shadow-md border border-[#cbb89d] rounded-md w-44">
             <button
-              className="w-full text-left px-3 py-2 text-sm hover:bg-[#f6efe6]"
+              className="hover:bg-[#f6efe6] px-3 py-2 w-full text-left text-sm"
               onClick={() => {
                 setMenuOpen(false);
                 router.push("/profile");
@@ -355,9 +356,9 @@ export default function ChartDetail() {
             >
               Profile
             </button>
-            <div className="h-px bg-[#ead7c2]" />
+            <div className="bg-[#ead7c2] h-px" />
             <button
-              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-[#fce9e9]"
+              className="hover:bg-[#fce9e9] px-3 py-2 w-full text-left text-red-600 text-sm"
               onClick={handleLogout}
             >
               Log out
@@ -367,11 +368,11 @@ export default function ChartDetail() {
       </div>
 
       {/* Month Title */}
-      <div className="flex items-center justify-center space-x-2 mt-3">
+      <div className="flex justify-center items-center space-x-2 mt-3">
         <button type="button" onClick={goPrevMonth}>
           <ChevronLeft className="text-[#6b3e1f]" size={18} />
         </button>
-        <h1 className="text-lg font-semibold text-[#5F5F5F]">
+        <h1 className="font-semibold text-[#5F5F5F] text-lg">
           {monthLabel(selectedMonth.yyyy, selectedMonth.mm)}
         </h1>
         <button type="button" onClick={goNextMonth}>
@@ -380,20 +381,20 @@ export default function ChartDetail() {
       </div>
 
       {/* Filter bar */}
-      <div className="w-72 mt-3">
+      <div className="mt-3 w-72">
         <button
           onClick={() => setFiltersOpen((v) => !v)}
-          className="w-full flex items-center justify-between rounded-lg bg-[#c0a88d] px-4 py-3 shadow-sm hover:opacity-95 active:scale-95 transition"
+          className="flex justify-between items-center bg-[#c0a88d] hover:opacity-95 shadow-sm px-4 py-3 rounded-lg w-full transition active:scale-95"
         >
-          <span className="text-lg font-semibold text-white/95">Filter</span>
+          <span className="font-semibold text-lg text-white/95">Filter</span>
           <Filter className="text-white/95" size={20} />
         </button>
 
         {filtersOpen && (
-          <div className="mt-2 border border-[#cbb89d] rounded-md p-3 bg-[#fff9f0] space-y-2 text-sm">
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2 bg-[#fff9f0] mt-2 p-3 border border-[#cbb89d] rounded-md text-sm">
+            <div className="gap-2 grid grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold mb-1">
+                <label className="block mb-1 font-semibold text-xs">
                   Start Date
                 </label>
                 <input
@@ -402,11 +403,11 @@ export default function ChartDetail() {
                   min={monthStartInput}
                   max={startInputMax}
                   onChange={(e) => handleStartChange(e.target.value)}
-                  className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
+                  className="bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
+                <label className="block mb-1 font-semibold text-xs">
                   End Date
                 </label>
                 <input
@@ -415,23 +416,23 @@ export default function ChartDetail() {
                   min={endInputMin}
                   max={monthEndInput}
                   onChange={(e) => handleEndChange(e.target.value)}
-                  className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
+                  className="bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
                 />
               </div>
             </div>
 
-            <p className="text-xs text-[#6b3e1f]/70 mt-1">
+            <p className="mt-1 text-[#6b3e1f]/70 text-xs">
               Selected: <span className="font-semibold">{rangeLabel}</span>
             </p>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">
+              <label className="block mb-1 font-semibold text-xs">
                 Category
               </label>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
+                className="bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
               >
                 <option value="">All</option>
                 {categories.map((cat) => (
@@ -443,13 +444,13 @@ export default function ChartDetail() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">
+              <label className="block mb-1 font-semibold text-xs">
                 Payment Method
               </label>
               <select
                 value={methodFilter}
                 onChange={(e) => setMethodFilter(e.target.value)}
-                className="w-full border border-[#cbb89d] rounded-sm bg-[#f4e8d9] px-2 py-1 focus:outline-none"
+                className="bg-[#f4e8d9] px-2 py-1 border border-[#cbb89d] rounded-sm w-full focus:outline-none"
               >
                 <option value="">All</option>
                 {paymentMethods.map((method) => (
@@ -461,7 +462,7 @@ export default function ChartDetail() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">Type</label>
+              <label className="block mb-1 font-semibold text-xs">Type</label>
               <div className="flex gap-2">
                 {["", "Income", "Expense"].map((t) => (
                   <button
@@ -488,7 +489,7 @@ export default function ChartDetail() {
               <button
                 type="button"
                 onClick={handleApplyFilter}
-                className="px-4 py-1.5 rounded bg-[#d5853c] text-white text-sm font-semibold hover:bg-[#b96f2f] active:scale-95 transition"
+                className="bg-[#d5853c] hover:bg-[#b96f2f] px-4 py-1.5 rounded font-semibold text-sm text-white transition active:scale-95"
               >
                 Apply
               </button>
@@ -498,7 +499,7 @@ export default function ChartDetail() {
       </div>
 
       {/* Pie Chart */}
-      <div className="mt-3 border border-[#8b6b49] p-3 rounded-md w-72 flex flex-col items-center">
+      <div className="flex flex-col items-center mt-3 p-3 border border-[#8b6b49] rounded-md w-72">
         {loading ? (
           <p>Loading chart...</p>
         ) : pieData.length === 0 ? (
@@ -517,15 +518,15 @@ export default function ChartDetail() {
       </div>
 
       {/* Category Breakdown */}
-      <div className="mt-4 w-72 mb-4">
-        <div className="grid grid-cols-[1.5fr_0.5fr_1fr] text-sm font-semibold border-b border-[#cbb89d] pb-1 mb-2">
+      <div className="mt-4 mb-4 w-72">
+        <div className="grid grid-cols-[1.5fr_0.5fr_1fr] mb-2 pb-1 border-[#cbb89d] border-b font-semibold text-sm">
           <span>Category</span>
           <span className="text-center">(%)</span>
           <span className="text-right">Baht</span>
         </div>
 
         {categoryRows.length === 0 ? (
-          <p className="text-center text-sm text-[#6b3e1f]/70">
+          <p className="text-[#6b3e1f]/70 text-center text-sm">
             No transactions found.
           </p>
         ) : (
@@ -533,16 +534,16 @@ export default function ChartDetail() {
             {categoryRows.map((row) => (
               <div
                 key={row.key}
-                className="grid grid-cols-[1.5fr_0.5fr_1fr] items-center gap-2 rounded px-2 py-1 cursor-pointer hover:bg-[#ead7c2]/60"
+                className="items-center gap-2 grid grid-cols-[1.5fr_0.5fr_1fr] hover:bg-[#ead7c2]/60 px-2 py-1 rounded cursor-pointer"
                 onClick={() => goCategory(row.key)}
               >
                 <span
-                  className="text-[#6b3e1f] px-2 py-0.5 rounded"
+                  className="px-2 py-0.5 rounded text-[#6b3e1f]"
                   style={{ backgroundColor: row.color || "#ead7c2" }}
                 >
                   {row.name}
                 </span>
-                <span className="text-center font-semibold text-[#6b3e1f]">
+                <span className="font-semibold text-[#6b3e1f] text-center">
                   {totalValue
                     ? Math.round((row.value / totalValue) * 100)
                     : 0}
@@ -556,14 +557,22 @@ export default function ChartDetail() {
       </div>
 
       {/* Bottom Add Button */}
-      <div className="w-full bg-[#ead7c2] py-3 flex justify-center fixed bottom-0 left-0 z-20">
+      <div className="bottom-0 left-0 z-20 fixed flex justify-center bg-[#ead7c2] py-3 w-full">
         <button
           onClick={() => router.push("/transaction")}
-          className="bg-[#d5853c] text-white rounded-full p-3 shadow-md hover:bg-[#b96f2f]"
+          className="bg-[#d5853c] hover:bg-[#b96f2f] shadow-md p-3 rounded-full text-white"
         >
           <Plus size={22} />
         </button>
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChartDetail />
+    </Suspense>
+  )
 }
