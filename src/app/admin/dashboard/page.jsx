@@ -53,8 +53,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // View details now always goes to /admin/detail
-  const handleViewDetails = () => {
     router.push('/admin/detail');
   };
 

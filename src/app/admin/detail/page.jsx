@@ -3,27 +3,49 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Home, Users, PlusCircle, Edit2, LogOut } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function UserDetails() {
   const router = useRouter();
   const [status, setStatus] = useState('active');
 
-  // Sample user data
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("userId");
+
+  const [summary, setSummary] = useState(null);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    async function fetchSummary() {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/transactions/summary?userId=${userId}`);
+        const data = await res.json();
+        setSummary(data);
+        setStatus(data.user.status || 'active');
+      } catch (err) {
+        console.error("Failed to load summary", err);
+      }
+    }
+
+    fetchSummary();
+  }, [userId]);
+
   const userData = {
-    name: 'Chonmanee C.',
-    email: 'chonmanee@...',
-    totalTransactions: 124
+    name: summary?.user?.username || "Loading...",
+    email: summary?.user?.email || "",
+    totalTransactions: summary?.totalCount || 0
   };
 
-  // Transaction data
-  const transactionData = [
-    { name: 'Bill', value: 20, color: '#7b93ff' },
-    { name: 'Salary', value: 10, color: '#9cd89c' },
-    { name: 'Food', value: 40, color: '#f3a7d3' },
-    { name: 'Shopping', value: 25, color: '#c5a3e8' },
-    { name: 'Other', value: 5, color: '#d4a08a' }
-  ];
+  const transactionData = summary?.categories?.map(c => ({
+    name: c.category,
+    value: c.totalAmount,
+    color: c.color
+  })) || [];
+
+  const totalValue = transactionData.reduce((sum, d) => sum + d.value, 0);
 
   const handleSaveChanges = () => {
     router.push('/admin/dashboard'); // UPDATED
@@ -38,33 +60,33 @@ export default function UserDetails() {
   };
   
   return (
-    <div className="min-h-screen bg-[#F8F3ED] flex flex-col">
+    <div className="flex flex-col bg-[#F8F3ED] min-h-screen">
       {/* Top Header */}
-      <div className="w-full bg-[#945C2B] flex items-center justify-left px-6 py-3 relative fixed top-0 z-30 shadow-md">
-        <h1 className="text-xl font-semibold text-white">User Details</h1>
+      <div className="relative top-0 z-30 fixed flex justify-left items-center bg-[#945C2B] shadow-md px-6 py-3 w-full">
+        <h1 className="font-semibold text-white text-xl">User Details</h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-6 py-8 mt-14 pb-24">
-        <div className="w-full max-w-lg bg-[#E9D6BF] rounded-lg p-6 shadow-md space-y-4">
+      <div className="flex flex-col flex-1 items-center mt-14 px-6 py-8 pb-24">
+        <div className="space-y-4 bg-[#E9D6BF] shadow-md p-6 rounded-lg w-full max-w-lg">
           
           {/* User Name */}
-          <div className="flex items-center gap-3 bg-[#d4c4a8] rounded-lg p-3">
+          <div className="flex items-center gap-3 bg-[#d4c4a8] p-3 rounded-lg">
             <User className="text-[#945C2B]" size={24} />
-            <span className="text-lg font-semibold text-[#945C2B]">{userData.name}</span>
+            <span className="font-semibold text-[#945C2B] text-lg">{userData.name}</span>
           </div>
 
           {/* Email */}
-          <div className="bg-[#E9D6BF] rounded-lg p-3 border-b-2 border-[#945C2B]">
-            <p className="text-base text-[#945C2B]">
+          <div className="bg-[#E9D6BF] p-3 border-[#945C2B] border-b-2 rounded-lg">
+            <p className="text-[#945C2B] text-base">
               <span className="font-semibold">Email:</span> {userData.email}
             </p>
           </div>
 
           {/* Status Toggle */}
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-[#945C2B]">Status</h3>
-            <div className="flex border-2 border-[#945C2B] rounded-lg overflow-hidden">
+            <h3 className="font-semibold text-[#945C2B] text-lg">Status</h3>
+            <div className="flex border-[#945C2B] border-2 rounded-lg overflow-hidden">
               <button
                 onClick={() => setStatus('active')}
                 className={`flex-1 py-3 text-base font-semibold transition-colors ${
@@ -90,8 +112,8 @@ export default function UserDetails() {
           </div>
 
           {/* Transaction Summary */}
-          <div className="space-y-3 pt-3 border-t-2 border-[#945C2B]">
-            <h3 className="text-lg font-semibold text-[#945C2B]">Transaction Summary</h3>
+          <div className="space-y-3 pt-3 border-[#945C2B] border-t-2">
+            <h3 className="font-semibold text-[#945C2B] text-lg">Transaction Summary</h3>
 
             {/* Pie Chart */}
             <div className="flex justify-center">
@@ -103,13 +125,12 @@ export default function UserDetails() {
                     cy="50%"
                     outerRadius={90}
                     dataKey="value"
-                    stroke="#945C2B"
-                    strokeWidth={2}
                   >
                     {transactionData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
+                  <Tooltip formatter={(v) => `${v} transactions`} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -119,19 +140,23 @@ export default function UserDetails() {
               {transactionData.map((item) => (
                 <div key={item.name} className="flex items-center gap-1">
                   <div
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: item.color }}
+                    className="rounded w-3 h-3"
+                    style={{ backgroundColor: item.color, border: '1px solid rgba(0,0,0,0.25)' }}
                   ></div>
-                  <span style={{ color: item.color }} className="font-semibold">
-                    {item.name} {item.value}%
+                  <span
+                    className="font-semibold"
+                    style={{
+                      color: item.color,
+                      textShadow: '-0.5px -0.5px 0 #945C2B, 0.5px -0.5px 0 #945C2B, -0.5px 0.5px 0 #945C2B, 0.5px 0.5px 0 #945C2B'
+                    }}
+                  >
+                    {item.name} {totalValue ? Math.round((item.value / totalValue) * 100) : 0}%
                   </span>
                 </div>
               ))}
             </div>
-
-            {/* Total Transactions */}
-            <div className="text-center mt-3">
-              <p className="text-lg font-semibold text-[#945C2B]">
+            <div className="mt-3 text-center">
+              <p className="font-semibold text-[#945C2B] text-lg">
                 Total Transactions: {userData.totalTransactions}
               </p>
             </div>
@@ -141,14 +166,14 @@ export default function UserDetails() {
           <div className="flex gap-3 pt-4">
             <button
               onClick={handleSaveChanges}
-              className="flex-1 bg-[#d5853c] hover:bg-[#b96f2f] text-white font-bold py-3 px-4 rounded-lg transition-colors active:scale-95 text-base"
+              className="flex-1 bg-[#d5853c] hover:bg-[#b96f2f] px-4 py-3 rounded-lg font-bold text-base text-white transition-colors active:scale-95"
             >
               SAVE CHANGES
             </button>
 
             <button
               onClick={handleCancel}
-              className="flex-1 bg-[#945C2B] hover:bg-[#7d4a22] text-white font-bold py-3 px-4 rounded-lg transition-colors active:scale-95 text-base"
+              className="flex-1 bg-[#945C2B] hover:bg-[#7d4a22] px-4 py-3 rounded-lg font-bold text-base text-white transition-colors active:scale-95"
             >
               CANCEL
             </button>
@@ -157,25 +182,25 @@ export default function UserDetails() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="w-full bg-[#E9D6BF] flex border-t-2 border-[#945C2B] fixed bottom-0">
+      <div className="bottom-0 fixed flex bg-[#E9D6BF] border-[#945C2B] border-t-2 w-full">
         
         {/* Home → Dashboard */}
         <button 
           onClick={() => router.push('/admin/dashboard')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <Home size={28} className="text-[#945C2B]" />
         </button>
         
         {/* Users (current page) */}
-        <button className="flex-1 flex flex-col items-center justify-center py-4 bg-white border-t-4 border-[#945C2B]">
+        <button className="flex flex-col flex-1 justify-center items-center bg-white py-4 border-[#945C2B] border-t-4">
           <Users size={28} className="text-[#945C2B]" />
         </button>
 
         {/* Plus → Add Page */}
         <button 
           onClick={() => router.push('/admin/add')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <PlusCircle size={28} className="text-[#945C2B]" />
         </button>
@@ -183,7 +208,7 @@ export default function UserDetails() {
         {/* Pencil → Edit Page */}
         <button 
           onClick={() => router.push('/admin/edit')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <Edit2 size={28} className="text-[#945C2B]" />
         </button>
@@ -191,7 +216,7 @@ export default function UserDetails() {
         {/* Logout → Login */}
         <button 
           onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <LogOut size={28} className="text-[#945C2B]" />
         </button>
