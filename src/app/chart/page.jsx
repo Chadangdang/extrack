@@ -55,6 +55,16 @@ function formatPrettyDate(iso) {
   return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 }
 
+function formatDateLabel(iso) {
+  const d = new Date(iso ?? "");
+  if (Number.isNaN(d.getTime())) return iso ?? "";
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function monthLabel(yyyy, mm) {
   const d = new Date(Number(yyyy), Number(mm) - 1, 1);
   return d
@@ -234,6 +244,12 @@ function ChartDetail() {
     return m;
   }, [categories]);
 
+  const categoryNameMap = useMemo(() => {
+    const map = new Map();
+    categories.forEach((cat) => map.set(cat.key, cat.name));
+    return map;
+  }, [categories]);
+
   const filteredTransactions = useMemo(() => {
     const startTs = effectiveStart ? new Date(effectiveStart).setHours(0, 0, 0, 0) : null;
     const endTs = effectiveEnd ? new Date(effectiveEnd).setHours(23, 59, 59, 999) : null;
@@ -267,6 +283,14 @@ function ChartDetail() {
     effectiveStart,
     effectiveEnd,
   ]);
+
+  const sortedTransactions = useMemo(() => {
+    return [...filteredTransactions].sort((a, b) => {
+      const aDate = new Date(a.createdAt || a.date || 0).getTime();
+      const bDate = new Date(b.createdAt || b.date || 0).getTime();
+      return aDate - bDate;
+    });
+  }, [filteredTransactions]);
 
   const pieData = useMemo(() => {
     const grouped = new Map();
@@ -311,6 +335,22 @@ function ChartDetail() {
   const handleApplyFilter = () => {
     fetchTransactions();
     setFiltersOpen(false);
+  };
+
+  const handleCardClick = (tx) => {
+    try {
+      const payload = {
+        ...tx,
+        categoryName: categoryNameMap.get(tx.category) || tx.category,
+      };
+      sessionStorage.setItem("selectedTransaction", JSON.stringify(payload));
+    } catch (err) {
+      console.error("Failed to cache transaction", err);
+    }
+
+    const key = tx.sk || tx.id || tx._id || "";
+    const query = key ? `?tx=${encodeURIComponent(key)}` : "";
+    router.push(`/details${query}`);
   };
 
   const startInputMax = monthEndInput;
@@ -553,6 +593,70 @@ function ChartDetail() {
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Transaction List */}
+      <div className="mt-2 mb-8 px-4 w-full max-w-md">
+        <h2 className="mb-3 font-semibold text-lg">Filtered Transactions</h2>
+        <div className="grid grid-cols-[1.5fr_1fr_1fr] mb-3 px-2 pb-2 border-[#cbb89d] border-b font-semibold text-[#8b4f21] text-xs">
+          <span>Details</span>
+          <span className="text-center">Date</span>
+          <span className="text-right">Amount</span>
+        </div>
+
+        {loading ? (
+          <p className="text-[#8b4f21] text-center text-sm">Loading...</p>
+        ) : sortedTransactions.length === 0 ? (
+          <p className="text-[#8b4f21] text-center text-sm">
+            No transactions match your filters.
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {sortedTransactions.map((tx) => {
+              return (
+                <li
+                  key={tx.sk || tx.id}
+                  onClick={() => handleCardClick(tx)}
+                  className="items-center gap-3 grid grid-cols-[1.5fr_1fr_1fr] bg-white shadow-sm hover:shadow-md px-2 py-2 rounded transition cursor-pointer"
+                >
+                  <div>
+                    <p className="font-semibold">{tx.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[#6b3e1f]/70 text-[11px]">
+                      <span
+                        className="px-2 py-0.5 rounded text-white"
+                        style={{ backgroundColor: colorMap.get(tx.category) || "#b08d6d" }}
+                      >
+                        {categoryNameMap.get(tx.category) || tx.category}
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded ${
+                          tx.type === "Income"
+                            ? "bg-[#a8cbb1] text-[#2f5f2f]"
+                            : "bg-[#d9a3a3] text-[#5f2f2f]"
+                        }`}
+                      >
+                        {tx.type}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-center text-xs">
+                    {formatDateLabel(tx.date || tx.createdAt)}
+                  </span>
+
+                  <span
+                    className={`text-right font-semibold ${
+                      tx.type === "Income" ? "text-green-700" : "text-red-600"
+                    }`}
+                  >
+                    {tx.type === "Expense" ? "-" : "+"}
+                    {formatCurrency(tx.amount)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
