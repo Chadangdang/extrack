@@ -153,7 +153,8 @@ function EditTransactionPage() {
         setDate(toDateInput(parsed.date || parsed.createdAt));
         setNote(parsed.note || "");
         setReceiptName(deriveReceiptName(parsed));
-        setReceiptKey(parsed.receiptKey || null);
+        setReceiptKey(parsed.receiptKey || parsed.receiptS3Key || null);
+
 
         if (parsed.receiptUrl) {
           setReceiptUrl(parsed.receiptUrl);
@@ -251,118 +252,150 @@ function EditTransactionPage() {
   const today = new Date().toISOString().split("T")[0];
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+  e.preventDefault();
+  setError("");
+  setSuccess("");
 
-    if (!transaction) {
-      setError("No transaction selected to edit.");
-      return;
-    }
+  if (!transaction) {
+    setError("No transaction selected to edit.");
+    return;
+  }
 
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      setError("Name is required.");
-      return;
-    }
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    setError("Name is required.");
+    return;
+  }
 
-    const formattedName =
-      trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1).toLowerCase();
+  const formattedName =
+    trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1).toLowerCase();
 
-    const intPart = parseInt(amountInt || "0", 10);
-    const centsPart = parseInt(amountCents || "0", 10);
-    const amount = intPart + centsPart / 100;
+  const intPart = parseInt(amountInt || "0", 10);
+  const centsPart = parseInt(amountCents || "0", 10);
+  const amount = intPart + centsPart / 100;
 
-    if (!amount || amount <= 0) {
-      setError("Amount must be greater than 0.");
-      return;
-    }
+  if (!amount || amount <= 0) {
+    setError("Amount must be greater than 0.");
+    return;
+  }
 
-    if (!category) {
-      setError("Category is required.");
-      return;
-    }
+  if (!category) {
+    setError("Category is required.");
+    return;
+  }
 
-    if (!paymentMethod) {
-      setError("Payment method is required.");
-      return;
-    }
+  if (!paymentMethod) {
+    setError("Payment method is required.");
+    return;
+  }
 
-    if (!date) {
-      setError("Date is required.");
-      return;
-    }
+  if (!date) {
+    setError("Date is required.");
+    return;
+  }
 
-    const safeNote = note.trim();
+  const safeNote = note.trim();
 
-    setIsSubmitting(true);
-    try {
-      let nextReceiptKey = receiptKey;
+  setIsSubmitting(true);
+  try {
+    // 1) Start with the original key from the transaction
+    const originalReceiptKey =
+      transaction.receiptKey ||
+      transaction.receiptS3Key ||
+      receiptKey ||
+      null;
 
-      if (receiptFile) {
-        const { uploadUrl, key } = await getReceiptUploadUrl(
-          receiptFile.name,
-          receiptFile.type
-        );
+    let nextReceiptKey = originalReceiptKey;
 
-        const uploadRes = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": receiptFile.type,
-          },
-          body: receiptFile,
-        });
+    // 2) If user picked a new file, upload it
+    if (receiptFile) {
+      // If your backend supports it, you can pass originalReceiptKey
+      // so it overwrites the same S3 path; otherwise it will just
+      // create a new key (same behaviour as Add Transaction).
+      const { uploadUrl, key } = await getReceiptUploadUrl(
+        originalReceiptKey || receiptFile.name,
+        receiptFile.type
+      );
 
-        if (!uploadRes.ok) {
-          console.error("S3 upload error", await uploadRes.text());
-          throw new Error("Failed to upload receipt");
-        }
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": receiptFile.type,
+        },
+        body: receiptFile,
+      });
 
-        nextReceiptKey = key;
+      if (!uploadRes.ok) {
+        console.error("S3 upload error", await uploadRes.text());
+        throw new Error("Failed to upload receipt");
       }
 
-      const txKey = transaction.sk || transaction.id || transaction._id;
-      if (!txKey) {
-        throw new Error("Missing transaction identifier");
-      }
-
-      const payload = {
-        sk: txKey,
-        name: formattedName,
-        amount,
-        category,
-        date,
-        paymentMethod,
-        note: safeNote,
-        type,
-        receiptKey: nextReceiptKey,
-      };
-
-      await updateTransaction(payload);
-
-      const updatedTx = {
-        ...transaction,
-        ...payload,
-        amount,
-        categoryName: category,
-        paymentMethod,
-        note: safeNote,
-        receiptKey: nextReceiptKey,
-        receiptUrl: receiptFile ? receiptUrl : transaction.receiptUrl,
-      };
-
-      sessionStorage.setItem("selectedTransaction", JSON.stringify(updatedTx));
-      setTransaction(updatedTx);
-      setReceiptKey(nextReceiptKey);
-      setSuccess("Transaction updated successfully.");
-      router.push("/details");
-    } catch (err) {
-      console.error("Failed to update transaction", err);
-      setError("Failed to update transaction. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      // Prefer to keep using the existing key if we passed it;
+      // otherwise fall back to the new key from backend.
+      nextReceiptKey = originalReceiptKey || key;
     }
-  };
+
+    const txKey = transaction.sk || transaction.id || transaction._id;
+    if (!txKey) {
+      throw new Error("Missing transaction identifier");
+    }
+
+    const payload = {
+      sk: txKey,
+      name: formattedName,
+      amount,
+      category,
+      date,
+      paymentMethod,
+      note: safeNote,
+      type,
+      receiptKey: nextReceiptKey,
+    };
+
+    await updateTransaction(payload);
+
+    // 3) Get a REAL view URL from S3 instead of keeping the blob URL
+    let nextReceiptUrl = transaction.receiptUrl || "";
+    if (nextReceiptKey) {
+      try {
+        const { url } = await getReceiptViewUrl(nextReceiptKey);
+        nextReceiptUrl = url || "";
+      } catch (err) {
+        console.error("Failed to load updated receipt URL", err);
+      }
+    }
+
+    const updatedTx = {
+      ...transaction,
+      ...payload,
+      amount,
+      categoryName: category,
+      paymentMethod,
+      note: safeNote,
+      receiptKey: nextReceiptKey,
+      receiptUrl: nextReceiptUrl,
+    };
+
+    // 4) Persist updated transaction in sessionStorage
+    sessionStorage.setItem("selectedTransaction", JSON.stringify(updatedTx));
+
+    // 5) Update local state
+    setTransaction(updatedTx);
+    setReceiptKey(nextReceiptKey);
+    setReceiptUrl(nextReceiptUrl);
+    setReceiptName(deriveReceiptName(updatedTx));
+    setReceiptFile(null);
+    setLocalPreview("");
+
+    setSuccess("Transaction updated successfully.");
+    router.push("/details");
+  } catch (err) {
+    console.error("Failed to update transaction", err);
+    setError("Failed to update transaction. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const goBack = () => router.push("/details");
 
