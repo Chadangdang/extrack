@@ -98,6 +98,10 @@ export function deleteTransaction(sk) {
   return request("POST", "/transactions/delete", {}, { sk });
 }
 
+export function updateTransaction(payload) {
+  return request("POST", "/transactions/update", {}, payload);
+}
+
 /* ============================
    RECEIPTS (S3)
 ============================ */
