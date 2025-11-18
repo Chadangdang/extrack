@@ -117,11 +117,25 @@ export default function AdminDashboard() {
     }
 
     try {
-      // TODO: Add API call to update category in backend
-      // await updateCategory(categoryKey, { name: newName.trim() });
-      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/category/update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          key: categoryKey,
+          name: newName.trim()
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update category");
+      }
+
+      const updated = await res.json();
+
       setCategories(categories.map(cat =>
-        (cat.key || cat.id) === categoryKey ? { ...cat, name: newName.trim() } : cat
+        (cat.key || cat.id) === categoryKey ? updated : cat
       ));
       setEditingCategory(null);
       alert('Category updated successfully!');
@@ -155,7 +169,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F8F3ED] flex items-center justify-center">
+      <div className="flex justify-center items-center bg-[#F8F3ED] min-h-screen">
         <p className="text-[#945C2B] text-lg">Loading admin dashboard...</p>
       </div>
     );
