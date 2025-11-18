@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 
 export default function UserDetails() {
   const router = useRouter();
-  const [status, setStatus] = useState('active');
+  const [status, setStatus] = useState('');
 
   const searchParams = useSearchParams();
   const userId = searchParams.get("userId");
@@ -47,8 +47,35 @@ export default function UserDetails() {
 
   const totalValue = transactionData.reduce((sum, d) => sum + d.value, 0);
 
-  const handleSaveChanges = () => {
-    router.push('/admin/dashboard'); // UPDATED
+  const handleSaveChanges = async () => {
+    if (!userId) return;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/users/status`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId,
+            status,
+          }),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Failed to update user status:", data);
+        return;
+      }
+
+      router.push('/admin/dashboard');
+    } catch (err) {
+      console.error("Error saving status:", err);
+    }
   };
 
   const handleCancel = () => {
