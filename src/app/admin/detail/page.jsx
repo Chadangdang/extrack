@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User, Home, Users, PlusCircle, Edit2, LogOut } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function UserDetails() {
+function UserDetails() {
   const router = useRouter();
   const [status, setStatus] = useState('');
 
@@ -250,4 +250,12 @@ export default function UserDetails() {
       </div>
     </div>
   );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserDetails />
+    </Suspense>
+  )
 }
