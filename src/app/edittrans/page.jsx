@@ -309,30 +309,45 @@ function EditTransactionPage() {
 
     // 2) If user picked a new file, upload it
     if (receiptFile) {
-      // If your backend supports it, you can pass originalReceiptKey
-      // so it overwrites the same S3 path; otherwise it will just
-      // create a new key (same behaviour as Add Transaction).
-      const { uploadUrl, key } = await getReceiptUploadUrl(
-        originalReceiptKey || receiptFile.name,
-        receiptFile.type
-      );
+      try {
+        // Use simple filename - backend will add timestamp and user folder
+        const fileName = receiptFile.name;
+        
+        console.log("Requesting upload URL for:", fileName, receiptFile.type);
+        
+        const { uploadUrl, key } = await getReceiptUploadUrl(
+          fileName,
+          receiptFile.type
+        );
 
-      const uploadRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": receiptFile.type,
-        },
-        body: receiptFile,
-      });
+        console.log("Got upload URL, uploading to S3...", { key });
 
-      if (!uploadRes.ok) {
-        console.error("S3 upload error", await uploadRes.text());
-        throw new Error("Failed to upload receipt");
+        const uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": receiptFile.type,
+          },
+          body: receiptFile,
+        });
+
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error("S3 upload failed:", {
+            status: uploadRes.status,
+            statusText: uploadRes.statusText,
+            error: errorText
+          });
+          throw new Error(`Failed to upload receipt: ${uploadRes.status} ${uploadRes.statusText}`);
+        }
+
+        console.log("S3 upload successful!");
+        
+        // Use the key returned from backend
+        nextReceiptKey = key;
+      } catch (uploadError) {
+        console.error("Receipt upload error:", uploadError);
+        throw new Error(`Failed to upload receipt: ${uploadError.message}`);
       }
-
-      // Prefer to keep using the existing key if we passed it;
-      // otherwise fall back to the new key from backend.
-      nextReceiptKey = originalReceiptKey || key;
     }
 
     const txKey = transaction.sk || transaction.id || transaction._id;
@@ -355,7 +370,7 @@ function EditTransactionPage() {
     await updateTransaction(payload);
 
     // 3) Get a REAL view URL from S3 instead of keeping the blob URL
-    let nextReceiptUrl = transaction.receiptUrl || "";
+    let nextReceiptUrl = "";
     if (nextReceiptKey) {
       try {
         const { url } = await getReceiptViewUrl(nextReceiptKey);
@@ -379,7 +394,11 @@ function EditTransactionPage() {
     // 4) Persist updated transaction in sessionStorage
     sessionStorage.setItem("selectedTransaction", JSON.stringify(updatedTx));
 
-    // 5) Update local state
+    // 5) Update local state and clean up blob URL
+    if (localPreview) {
+      URL.revokeObjectURL(localPreview);
+    }
+    
     setTransaction(updatedTx);
     setReceiptKey(nextReceiptKey);
     setReceiptUrl(nextReceiptUrl);
@@ -388,15 +407,31 @@ function EditTransactionPage() {
     setLocalPreview("");
 
     setSuccess("Transaction updated successfully.");
-    router.push("/details");
+    
+    // Delay navigation slightly to show success message
+    setTimeout(() => {
+      router.push("/details");
+    }, 500);
   } catch (err) {
-    console.error("Failed to update transaction", err);
-    setError("Failed to update transaction. Please try again.");
+    console.error("Failed to update transaction:", err);
+    
+    // More specific error messages
+    let errorMessage = "Failed to update transaction. Please try again.";
+    
+    if (err.message.includes("upload")) {
+      errorMessage = "Failed to upload receipt image. Please check your connection and try again.";
+    } else if (err.message.includes("CORS")) {
+      errorMessage = "Upload blocked by security policy. Please contact support.";
+    } else if (err.message.includes("Network")) {
+      errorMessage = "Network error. Please check your internet connection.";
+    }
+    
+    setError(errorMessage);
   } finally {
     setIsSubmitting(false);
   }
 };
-
+  
   const goBack = () => router.push("/details");
 
   const canPreviewReceipt = Boolean(receiptUrl);
