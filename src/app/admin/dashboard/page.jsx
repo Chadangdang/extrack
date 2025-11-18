@@ -103,8 +103,21 @@ export default function AdminDashboard() {
       const colors = ['#f3a7d3', '#7b93ff', '#c5a3e8', '#9cd89c', '#f4dda7', '#ffa8a8', '#a8d5ff'];
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
       
-      // TODO: Add API call to create category in backend
-      // const newCat = await createCategory({ name: categoryName.trim(), color: randomColor });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: categoryName.trim(),
+          name: categoryName.trim(),
+          color: randomColor
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || "Failed to save category");
+        return;
+      }
       
       const newCat = {
         key: `cat_${Date.now()}`,
