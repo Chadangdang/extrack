@@ -53,7 +53,8 @@ export default function AdminDashboard() {
     }
   };
 
-    router.push('/admin/detail');
+  const handleViewDetails = (userId) => {
+    router.push(`/admin/detail?userId=${userId}`);
   };
 
   const handleActivate = (userId) => {
@@ -185,7 +186,7 @@ export default function AdminDashboard() {
 
   // Filter users based on search
   const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -253,7 +254,7 @@ export default function AdminDashboard() {
                       <p>Transactions: {user.transactions}</p>
                     </div>
                     <button
-                      onClick={() => user.status === 'active' ? handleViewDetails() : handleActivate(user.id)}
+                      onClick={() => user.status === 'active' ? handleViewDetails(user.id) : handleActivate(user.id)}
                       className="bg-[#E9D6BF] mt-3 px-4 py-3 rounded-lg w-full font-semibold text-[#945C2B] transition-colors hover:bg:white active:scale-95"
                     >
                       {user.status === 'active' ? 'View Details' : 'Activate'}
