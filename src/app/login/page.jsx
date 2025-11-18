@@ -112,16 +112,7 @@ export default function LoginPage() {
                 className="w-full pl-10 pr-4 py-2 rounded-md bg-[#e7d3bd] text-[#6b3e1f] placeholder-[#a07a59] outline-none"
                 required
               />
-            </div>
-
-            <div className="text-right">
-              <Link
-                href="#"
-                className="text-xs text-[#8b4f21] hover:underline"
-              >
-                Forgot Password?
-              </Link>
-            </div>
+            </div>  
 
             <button
               type="submit"
@@ -131,15 +122,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-sm text-[#6b3e1f] mt-5">
-            Don’t have an account?{" "}
-            <Link
-              href="/signup"
-              className="text-[#8b4f21] font-semibold hover:underline"
-            >
-              SIGN UP here
-            </Link>
-          </p>
         </div>
       </div>
     </div>

@@ -72,6 +72,14 @@ export function getAllUsers() {
 }
 
 /* ============================
+  ADMINS
+============================ */
+
+export function getAdmins() {
+  return request("GET", "/admins");
+}
+
+/* ============================
    TRANSACTIONS
 ============================ */
 export function getTransactions() {
