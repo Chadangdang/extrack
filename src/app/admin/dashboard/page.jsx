@@ -117,7 +117,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/category/update`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -176,50 +176,50 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F3ED] flex flex-col">
+    <div className="flex flex-col bg-[#F8F3ED] min-h-screen">
       {/* Top Header */}
-      <div className="w-full bg-[#945C2B] flex items-center justify-left px-6 py-3 relative fixed top-0 z-30 shadow-md">
-        <h1 className="text-xl font-semibold text-white">ADMIN DASHBOARD</h1>
+      <div className="relative top-0 z-30 fixed flex justify-left items-center bg-[#945C2B] shadow-md px-6 py-3 w-full">
+        <h1 className="font-semibold text-white text-xl">ADMIN DASHBOARD</h1>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center px-6 py-8 pb-24 mt-14">
+      <div className="flex flex-col flex-1 items-center mt-14 px-6 py-8 pb-24">
         {/* Search Bar */}
-        <div className="w-full max-w-3xl mb-8">
+        <div className="mb-8 w-full max-w-3xl">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="top-1/2 left-4 absolute text-gray-400 transform -translate-y-1/2" size={20} />
             <input
               type="text"
               placeholder="Search users by name or email"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white border border-[#945C2B] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#945C2B] text-[#945C2B]"
+              className="bg-white py-3 pr-4 pl-12 border border-[#945C2B] rounded-lg w-full text-[#945C2B] focus:outline-none focus:ring-2 focus:ring-[#945C2B]"
             />
           </div>
         </div>
 
         {/* User List Section */}
-        <div className="w-full max-w-3xl mb-6 bg:white rounded-lg shadow-sm overflow-hidden border border-[#945C2B] bg-white">
+        <div className="bg-white shadow-sm mb-6 border border-[#945C2B] rounded-lg w-full max-w-3xl overflow-hidden bg:white">
           <button
             onClick={() => setUserSectionOpen(!userSectionOpen)}
-            className="w-full flex items-center justify-between px-6 py-4 bg-[#E9D6BF] hover:bg-[#d9c6af] transition-colors"
+            className="flex justify-between items-center bg-[#E9D6BF] hover:bg-[#d9c6af] px-6 py-4 w-full transition-colors"
           >
             <span className="font-semibold text-[#945C2B] text-lg">User List Section ({filteredUsers.length})</span>
             {userSectionOpen ? <ChevronDown className="text-[#945C2B]" size={22} /> : <ChevronRight className="text-[#945C2B]" size={22} />}
           </button>
           
           {userSectionOpen && (
-            <div className="px-6 py-6 space-y-4 bg-[#F8F3ED]">
+            <div className="space-y-4 bg-[#F8F3ED] px-6 py-6">
               {filteredUsers.length === 0 ? (
-                <p className="text-center text-[#945C2B] py-4">No users found</p>
+                <p className="py-4 text-[#945C2B] text-center">No users found</p>
               ) : (
                 filteredUsers.map(user => (
-                  <div key={user.id} className="bg-[#945C2B] rounded-lg p-5 space-y-3">
+                  <div key={user.id} className="space-y-3 bg-[#945C2B] p-5 rounded-lg">
                     <div className="flex items-center gap-2">
                       <User className="text-[#E9D6BF]" size={20} />
-                      <span className="font-semibold text-white text-lg">{user.name}</span>
+                      <span className="font-semibold text-lg text-white">{user.name}</span>
                     </div>
-                    <div className="text-sm text-white space-y-1">
+                    <div className="space-y-1 text-sm text-white">
                       <p>Email: {user.email}</p>
                       <div className="flex items-center gap-2">
                         <span>Status:</span>
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
                     </div>
                     <button
                       onClick={() => user.status === 'active' ? handleViewDetails() : handleActivate(user.id)}
-                      className="w-full mt-3 bg-[#E9D6BF] hover:bg:white text-[#945C2B] font-semibold py-3 px-4 rounded-lg transition-colors active:scale-95"
+                      className="bg-[#E9D6BF] mt-3 px-4 py-3 rounded-lg w-full font-semibold text-[#945C2B] transition-colors hover:bg:white active:scale-95"
                     >
                       {user.status === 'active' ? 'View Details' : 'Activate'}
                     </button>
@@ -244,17 +244,17 @@ export default function AdminDashboard() {
         </div>
 
         {/* Category Section */}
-        <div className="w-full max-w-3xl bg-white rounded-lg shadow-sm overflow-hidden border border-[#945C2B]">
+        <div className="bg-white shadow-sm border border-[#945C2B] rounded-lg w-full max-w-3xl overflow-hidden">
           <button
             onClick={() => setCategorySectionOpen(!categorySectionOpen)}
-            className="w-full flex items-center justify-between px-6 py-4 bg-[#E9D6BF] hover:bg-[#d9c6af] transition-colors"
+            className="flex justify-between items-center bg-[#E9D6BF] hover:bg-[#d9c6af] px-6 py-4 w-full transition-colors"
           >
             <span className="font-semibold text-[#945C2B] text-lg">Category Section ({categories.length})</span>
             {categorySectionOpen ? <ChevronDown className="text-[#945C2B]" size={22} /> : <ChevronRight className="text-[#945C2B]" size={22} />}
           </button>
           
           {categorySectionOpen && (
-            <div className="px-6 py-6 space-y-4 bg-[#F8F3ED]">
+            <div className="space-y-4 bg-[#F8F3ED] px-6 py-6">
               {categories.map(category => (
                 <div key={category.key || category.id} className="flex items-center gap-3">
                   {editingCategory === (category.key || category.id) ? (
@@ -267,12 +267,12 @@ export default function AdminDashboard() {
                           updateCategory(category.key || category.id, e.target.value);
                         }
                       }}
-                      className="flex-1 px-4 py-3 rounded-lg border-2 border-[#945C2B] focus:outline-none text-[#945C2B]"
+                      className="flex-1 px-4 py-3 border-[#945C2B] border-2 rounded-lg text-[#945C2B] focus:outline-none"
                       autoFocus
                     />
                   ) : (
                     <div 
-                      className="flex-1 px-4 py-3 rounded-lg text-white font-medium text-base"
+                      className="flex-1 px-4 py-3 rounded-lg font-medium text-base text-white"
                       style={{ backgroundColor: category.color }}
                     >
                       {category.name}
@@ -280,13 +280,13 @@ export default function AdminDashboard() {
                   )}
                   <button
                     onClick={() => setEditingCategory(category.key || category.id)}
-                    className="p-3 bg-[#E9D6BF] hover:bg-[#d9c6af] rounded-lg transition-colors border border-[#945C2B]"
+                    className="bg-[#E9D6BF] hover:bg-[#d9c6af] p-3 border border-[#945C2B] rounded-lg transition-colors"
                   >
                     <Edit2 size={18} className="text-[#945C2B]" />
                   </button>
                   <button
                     onClick={() => deleteCategory(category.key || category.id)}
-                    className="p-3 bg-[#945C2B] hover:bg-[#7d4a22] rounded-lg transition-colors"
+                    className="bg-[#945C2B] hover:bg-[#7d4a22] p-3 rounded-lg transition-colors"
                   >
                     <Trash2 size={18} className="text-white" />
                   </button>
@@ -295,9 +295,9 @@ export default function AdminDashboard() {
               
               <button
                 onClick={handleAddCategoryClick}
-                className="flex items-center justify-center gap-2 w-full bg-[#E9D6BF] hover:bg-[#d9c6af] text-[#945C2B] font-semibold px-4 py-3 rounded-lg transition-colors active:scale-95 mt-2 border border-[#945C2B]"
+                className="flex justify-center items-center gap-2 bg-[#E9D6BF] hover:bg-[#d9c6af] mt-2 px-4 py-3 border border-[#945C2B] rounded-lg w-full font-semibold text-[#945C2B] transition-colors active:scale-95"
               >
-                <div className="bg-[#945C2B] rounded-full p-1">
+                <div className="bg-[#945C2B] p-1 rounded-full">
                   <Plus size={16} className="text-white" />
                 </div>
                 Add Category
@@ -308,17 +308,17 @@ export default function AdminDashboard() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="w-full bg-[#E9D6BF] flex border-t-2 border-[#945C2B] fixed bottom-0">
+      <div className="bottom-0 fixed flex bg-[#E9D6BF] border-[#945C2B] border-t-2 w-full">
         
         {/* Home */}
-        <button className="flex-1 flex flex-col items-center justify-center py-4 bg-white border-t-4 border-[#945C2B]">
+        <button className="flex flex-col flex-1 justify-center items-center bg-white py-4 border-[#945C2B] border-t-4">
           <Home size={28} className="text-[#945C2B]" />
         </button>
 
         {/* Users */}
         <button 
           onClick={() => router.push('/admin/detail')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <Users size={28} className="text-[#945C2B]" />
         </button>
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
         {/* Plus */}
         <button 
           onClick={() => router.push('/admin/add')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <PlusCircle size={28} className="text-[#945C2B]" />
         </button>
@@ -334,7 +334,7 @@ export default function AdminDashboard() {
         {/* Pencil */}
         <button 
           onClick={() => router.push('/admin/edit')}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <Edit2 size={28} className="text-[#945C2B]" />
         </button>
@@ -342,7 +342,7 @@ export default function AdminDashboard() {
         {/* Logout */}
         <button 
           onClick={handleLogout}
-          className="flex-1 flex flex-col items-center justify-center py-4 hover:bg-white transition-colors active:scale-95"
+          className="flex flex-col flex-1 justify-center items-center hover:bg-white py-4 transition-colors active:scale-95"
         >
           <LogOut size={28} className="text-[#945C2B]" />
         </button>
