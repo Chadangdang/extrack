@@ -122,6 +122,15 @@ export default function LoginPage() {
             </button>
           </form>
 
+          <p className="text-sm text-[#6b3e1f] mt-5">
+            Don’t have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-[#8b4f21] font-semibold hover:underline"
+            >
+              SIGN UP here
+            </Link>
+          </p>
         </div>
       </div>
     </div>
