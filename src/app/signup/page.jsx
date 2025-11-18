@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createUser } from "@/lib/api";
 
 const initialState = {
   firstName: "",
