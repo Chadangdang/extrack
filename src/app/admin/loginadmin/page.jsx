@@ -7,7 +7,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#f4e6d6] flex flex-col items-center">
       {/* Top beige strip (the "tab" across the top) */}
       <div className="w-full h-12 bg-[#ead7c2] shadow-sm"></div>
-
+      
       {/* Main content area */}
       <div className="w-full flex-1 flex items-start justify-center pt-6 pb-12 px-4">
         <div className="w-full max-w-sm bg-[#fbf7f3] rounded-2xl p-8 shadow-md text-center border border-transparent">
@@ -23,9 +23,9 @@ export default function LoginPage() {
                 priority
               />
             </div>
-        
+            <h1 className="text-2xl font-bold text-[#6b3e1f] mt-4">ADMIN LOGIN</h1>
           </div>
-
+          
           {/* Form */}
           <form className="space-y-5">
             <div className="relative">
@@ -37,7 +37,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-
             <div className="relative">
               <Lock className="absolute left-3 top-3 text-[#a06a3f]" size={20} />
               <input
@@ -47,13 +46,6 @@ export default function LoginPage() {
                 required
               />
             </div>
-
-            <div className="text-right">
-              <Link href="#" className="text-xs text-[#8b4f21] hover:underline">
-                Forgot Password?
-              </Link>
-            </div>
-
             <button
               type="submit"
               className="w-full bg-[#e39a46] text-white font-semibold py-2 rounded-md hover:bg-[#c57b2b] transition"
@@ -61,13 +53,6 @@ export default function LoginPage() {
               LOGIN
             </button>
           </form>
-
-          <p className="text-sm text-[#6b3e1f] mt-5">
-            Don’t have an account?{" "}
-            <Link href="/signup" className="text-[#8b4f21] font-semibold hover:underline">
-              SIGN UP here
-            </Link>
-          </p>
         </div>
       </div>
     </div>
