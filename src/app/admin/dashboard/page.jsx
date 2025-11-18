@@ -72,8 +72,19 @@ export default function AdminDashboard() {
     }
     
     try {
-      // TODO: Add API call to delete category from backend
-      // await deleteCategory(categoryKey);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/categories/delete`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ key: categoryKey }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to delete category");
+      }
+
       
       setCategories(categories.filter(cat => (cat.key || cat.id) !== categoryKey));
       alert('Category deleted successfully!');
