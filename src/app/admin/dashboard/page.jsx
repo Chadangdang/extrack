@@ -254,10 +254,10 @@ export default function AdminDashboard() {
                       <p>Transactions: {user.transactions}</p>
                     </div>
                     <button
-                      onClick={() => user.status === 'active' ? handleViewDetails(user.id) : handleActivate(user.id)}
+                      onClick={() => handleViewDetails(user.id)}
                       className="bg-[#E9D6BF] mt-3 px-4 py-3 rounded-lg w-full font-semibold text-[#945C2B] transition-colors hover:bg:white active:scale-95"
                     >
-                      {user.status === 'active' ? 'View Details' : 'Activate'}
+                      View Details
                     </button>
                   </div>
                 ))
